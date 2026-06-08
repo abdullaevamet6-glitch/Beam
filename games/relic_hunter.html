@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RELIC HUNTER - Тёмное подземелье</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            position: relative;
+        }
+        
+        canvas {
+            border: 3px solid #f7931a;
+            border-radius: 10px;
+            cursor: crosshair;
+            box-shadow: 0 0 20px rgba(247,147,26,0.3);
+            background: #1a1a2a;
+            display: block;
+        }
+        
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+        
+        .menu-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #f7931a;
+            border-radius: 20px;
+            padding: 30px 40px;
+            text-align: center;
+            min-width: 320px;
+        }
+        
+        .menu-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .menu-subtitle {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 25px;
+        }
+        
+        .menu-btn {
+            display: block;
+            width: 100%;
+            background: #2c3e66;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .menu-btn:hover {
+            background: #f7931a;
+            transform: scale(1.02);
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.85);
+            padding: 8px 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            z-index: 10;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+        }
+        
+        .info-item {
+            background: rgba(247,147,26,0.25);
+            padding: 3px 10px;
+            border-radius: 15px;
+            border-left: 2px solid #f7931a;
+        }
+        
+        .info-item span {
+            color: #f7931a;
+            font-weight: bold;
+        }
+        
+        .inventory-panel {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.85);
+            border-radius: 8px;
+            padding: 10px;
+            z-index: 10;
+            min-width: 180px;
+            backdrop-filter: blur(5px);
+            font-size: 11px;
+            pointer-events: auto;
+        }
+        
+        .inventory-title {
+            color: #f7931a;
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .inv-slot {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #f7931a;
+            border-radius: 5px;
+            padding: 4px 8px;
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        
+        .inv-slot:hover {
+            background: rgba(247,147,26,0.3);
+        }
+        
+        .game-button {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: #f7931a;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: monospace;
+            z-index: 10;
+        }
+        
+        .game-button:hover {
+            background: #ffaa44;
+            transform: scale(1.02);
+        }
+        
+        .victory-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            border: 2px solid #ffd700;
+            border-radius: 20px;
+            padding: 30px 50px;
+            text-align: center;
+            z-index: 200;
+            min-width: 350px;
+        }
+        
+        .victory-title {
+            font-size: 36px;
+            color: #ffd700;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .victory-stats {
+            color: white;
+            margin: 15px 0;
+            font-size: 16px;
+        }
+        
+        .victory-stats span {
+            color: #ffd700;
+        }
+        
+        .victory-btn {
+            background: #f7931a;
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            margin: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .victory-btn:hover {
+            background: #ffaa44;
+        }
+        
+        .game-over-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            border: 2px solid #ff4444;
+            border-radius: 20px;
+            padding: 25px 35px;
+            text-align: center;
+            z-index: 200;
+            min-width: 300px;
+        }
+        
+        .game-over-title {
+            font-size: 32px;
+            color: #ff4444;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .game-over-stats {
+            color: white;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        
+        .game-over-stats span {
+            color: #ffd700;
+        }
+        
+        .game-over-btn {
+            background: #f7931a;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loot-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #ffd700;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            animation: fadeOut 1.5s forwards;
+            pointer-events: none;
+            z-index: 200;
+            white-space: nowrap;
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -80%) scale(1.2); }
+        }
+        
+        .damage-number {
+            position: absolute;
+            color: #ff6666;
+            font-weight: bold;
+            font-size: 14px;
+            pointer-events: none;
+            animation: floatUp 0.8s forwards;
+            z-index: 50;
+        }
+        
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <canvas id="gameCanvas" width="1200" height="700"></canvas>
+    
+    <div id="menuOverlay" class="menu-overlay">
+        <div id="mainMenuPanel" class="menu-panel">
+            <div class="menu-title">🏺 RELIC HUNTER</div>
+            <div class="menu-subtitle">Тёмное подземелье</div>
+            <button class="menu-btn" id="startGameBtn">▶️ НАЧАТЬ ИГРУ</button>
+            <button class="menu-btn" id="continueGameBtn">📀 ПРОДОЛЖИТЬ</button>
+            <button class="menu-btn" id="helpMenuBtn">❓ ПОМОЩЬ</button>
+        </div>
+        <div id="helpPanel" class="menu-panel hidden">
+            <div class="menu-title">❓ УПРАВЛЕНИЕ</div>
+            <div class="menu-subtitle">WASD / ЦФЫВ - движение</div>
+            <div class="menu-subtitle">ЛКМ - атака мечом | ПКМ - выстрел из лука</div>
+            <div class="menu-subtitle">1 - зелье здоровья | 2 - стрелы (крафт)</div>
+            <div class="menu-subtitle">3 - статистика | ESC - меню</div>
+            <div class="menu-subtitle">🎯 Найдите 3 реликвии в темноте!</div>
+            <button class="menu-btn" id="backToMainBtn">◀️ НАЗАД</button>
+        </div>
+    </div>
+    
+    <div id="gameUI" class="hidden">
+        <div class="info-panel">
+            <div class="info-item">❤️ <span id="hp">100</span>/<span id="maxHp">100</span></div>
+            <div class="info-item">⚔️ <span id="damage">15</span></div>
+            <div class="info-item">💰 <span id="coins">0</span></div>
+            <div class="info-item">🏆 <span id="relics">0</span>/<span id="totalRelics">3</span></div>
+        </div>
+        
+        <div class="inventory-panel" id="inventoryPanel">
+            <div class="inventory-title">🎒 ИНВЕНТАРЬ</div>
+            <div id="inventoryList"></div>
+            <div style="font-size:9px; color:#888; margin-top:5px; text-align:center;">1 - зелье | 2 - стрелы</div>
+        </div>
+        
+        <button id="menuBtn" class="game-button">📋 МЕНЮ</button>
+    </div>
+    
+    <div id="victoryPanel" class="victory-panel hidden">
+        <div class="victory-title">🏆 ПОБЕДА! 🏆</div>
+        <div class="victory-stats">✨ ВЫ НАШЛИ ВСЕ РЕЛИКВИИ ✨</div>
+        <div class="victory-stats">💰 СОБРАНО МОНЕТ: <span id="victoryCoins">0</span></div>
+        <div class="victory-stats">💀 УБИТО ВРАГОВ: <span id="victoryKills">0</span></div>
+        <button class="victory-btn" id="victoryRestartBtn">🔄 НОВАЯ ИГРА</button>
+        <button class="victory-btn" id="victoryMenuBtn">📋 ГЛАВНОЕ МЕНЮ</button>
+    </div>
+    
+    <div id="gameOverPanel" class="game-over-panel hidden">
+        <div class="game-over-title">💀 ВЫ ПОГИБЛИ</div>
+        <div class="game-over-stats">🏆 НАЙДЕНО РЕЛИКВИЙ: <span id="gameOverRelics">0</span>/3</div>
+        <div class="game-over-stats">💰 МОНЕТ: <span id="gameOverCoins">0</span></div>
+        <div class="game-over-stats">💀 УБИТО: <span id="gameOverKills">0</span></div>
+        <button class="game-over-btn" id="gameOverRestartBtn">🔄 НАЧАТЬ ЗАНОВО</button>
+        <button class="game-over-btn" id="gameOverMenuBtn">📋 ГЛАВНОЕ МЕНЮ</button>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
+    const GAME_ID = "relic_hunter_dark";
+    
+    let currentUser = null;
+    let gameStarted = false;
+    let gameActive = true;
+    let isPaused = false;
+    let frame = 0;
+    let totalKills = 0;
+    let lastStepFrame = 0;
+    let audioEnabled = true;
+    let audioCtx = null;
+    let ambientInterval = null;
+    
+    let player = {
+        x: 400, y: 300,
+        hp: 100, maxHp: 100,
+        damage: 15,
+        coins: 0,
+        relics: 0,
+        totalRelics: 3,
+        invincibleTimer: 0,
+        radius: 12,
+        speed: 4
+    };
+    
+    let inventory = { healthPotion: 2, arrow: 10 };
+    
+    let walls = [];
+    let items = [];
+    let chests = [];
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    let portal = null;
+    let relics = [];
+    let decorations = []; // летучие мыши, паутина, кристаллы, костры
+    
+    let weapon = {
+        swordCooldown: 0, bowCooldown: 0,
+        swordDelay: 18, bowDelay: 28,
+        attackRange: 55, attackAngle: Math.PI / 2.5
+    };
+    
+    let worldWidth = 80;
+    let worldHeight = 60;
+    let tileSize = 32;
+    let camera = { x: 0, y: 0 };
+    let map = [];
+    
+    let keysPressed = { w: false, s: false, a: false, d: false, ц: false, ф: false, ы: false, в: false };
+    let mouseX = 0, mouseY = 0;
+    let mouseDown = false;
+    let rightMouseDown = false;
+    
+    let canvas = document.getElementById('gameCanvas');
+    let ctx = canvas.getContext('2d');
+    
+    // ============ ЗВУКИ ============
+    function initAudio() {
+        if (!audioEnabled) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch(e) { console.log("Audio not supported"); }
+    }
+    
+    function playSound(type, volume = 0.3) {
+        if (!audioEnabled || !audioCtx || audioCtx.state !== 'running') return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            let freq = 440, dur = 0.15;
+            if (type === 'sword') { freq = 300; dur = 0.12; gain.gain.value = volume * 0.4; }
+            else if (type === 'bow') { freq = 600; dur = 0.1; gain.gain.value = volume * 0.35; }
+            else if (type === 'hit') { freq = 150; dur = 0.2; gain.gain.value = volume * 0.5; }
+            else if (type === 'collect') { freq = 800; dur = 0.1; gain.gain.value = volume * 0.3; }
+            else if (type === 'footstep') { freq = 100; dur = 0.05; gain.gain.value = volume * 0.12; }
+            else if (type === 'portal') { freq = 440; dur = 0.5; gain.gain.value = volume * 0.4; }
+            else if (type === 'ambient') { freq = 180; dur = 2; gain.gain.value = volume * 0.05; }
+            
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.stop(audioCtx.currentTime + dur);
+        } catch(e) {}
+    }
+    
+    function startAmbient() {
+        if (ambientInterval) clearInterval(ambientInterval);
+        ambientInterval = setInterval(() => {
+            if (gameStarted && gameActive && !isPaused && audioCtx && audioCtx.state === 'running') {
+                playSound('ambient', 0.08);
+            }
+        }, 8000);
+    }
+    
+    function getCurrentUser() {
+        try { if (window.parent && window.parent.currentUser) return window.parent.currentUser; } catch(e) {}
+        return localStorage.getItem('beam_user') || "guest";
+    }
+    currentUser = getCurrentUser();
+    
+    function showToast(msg, isError = false) {
+        try { if (window.parent && window.parent.showToast) { window.parent.showToast(msg, isError); return; } } catch(e) {}
+        const toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:' + (isError ? '#ff4444' : '#4caf50') + ';color:white;padding:6px 12px;border-radius:20px;z-index:9999;font-family:monospace;font-size:12px;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+    
+    function showLootMessage(msg) {
+        const div = document.createElement('div');
+        div.className = 'loot-message';
+        div.textContent = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1500);
+        playSound('collect', 0.3);
+    }
+    
+    function showDamageNumber(x, y, damage) {
+        const div = document.createElement('div');
+        div.className = 'damage-number';
+        div.textContent = `-${damage}`;
+        div.style.left = (x - camera.x + canvas.width/2) + 'px';
+        div.style.top = (y - camera.y + canvas.height/2) + 'px';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 800);
+        playSound('hit', 0.4);
+    }
+    
+    function showVictory() {
+        playSound('portal', 0.5);
+        document.getElementById('victoryCoins').innerHTML = player.coins;
+        document.getElementById('victoryKills').innerHTML = totalKills;
+        document.getElementById('victoryPanel').classList.remove('hidden');
+        document.getElementById('gameUI').classList.add('hidden');
+        gameStarted = false;
+    }
+    
+    function showGameOver() {
+        document.getElementById('gameOverRelics').innerHTML = player.relics;
+        document.getElementById('gameOverCoins').innerHTML = player.coins;
+        document.getElementById('gameOverKills').innerHTML = totalKills;
+        document.getElementById('gameOverPanel').classList.remove('hidden');
+        document.getElementById('gameUI').classList.add('hidden');
+        gameStarted = false;
+    }
+    
+    function restartGame() {
+        totalKills = 0;
+        player = {
+            x: 400, y: 300,
+            hp: 100, maxHp: 100,
+            damage: 15,
+            coins: 0,
+            relics: 0,
+            totalRelics: 3,
+            invincibleTimer: 0,
+            radius: 12,
+            speed: 4
+        };
+        inventory = { healthPotion: 2, arrow: 10 };
+        gameActive = true;
+        document.getElementById('victoryPanel').classList.add('hidden');
+        document.getElementById('gameOverPanel').classList.add('hidden');
+        generateMaze();
+        generateWorld();
+        updateUI();
+        startGame();
+    }
+    
+    // ГЕНЕРАЦИЯ ЛАБИРИНТА
+    function generateMaze() {
+        for (let y = 0; y < worldHeight; y++) {
+            map[y] = [];
+            for (let x = 0; x < worldWidth; x++) {
+                map[y][x] = 1;
+            }
+        }
+        
+        // Широкие коридоры
+        for (let y = 5; y < worldHeight - 5; y += 7) {
+            for (let x = 0; x < worldWidth; x++) {
+                if (x > 3 && x < worldWidth - 3) {
+                    map[y][x] = 0;
+                    map[y+1][x] = 0;
+                    map[y-1][x] = 0;
+                    if (y+2 < worldHeight) map[y+2][x] = 0;
+                }
+            }
+        }
+        
+        for (let x = 7; x < worldWidth - 7; x += 7) {
+            for (let y = 0; y < worldHeight; y++) {
+                if (y > 3 && y < worldHeight - 3) {
+                    map[y][x] = 0;
+                    map[y][x+1] = 0;
+                    map[y][x-1] = 0;
+                    if (x+2 < worldWidth) map[y][x+2] = 0;
+                }
+            }
+        }
+        
+        // Стартовая зона
+        for (let y = 1; y < 8; y++) {
+            for (let x = 1; x < 8; x++) {
+                map[y][x] = 0;
+            }
+        }
+        
+        // Комнаты
+        let rooms = [[20, 15], [50, 30], [35, 45], [60, 20], [15, 50], [45, 10], [70, 40]];
+        for (let [rx, ry] of rooms) {
+            for (let y = ry-3; y <= ry+3; y++) {
+                for (let x = rx-3; x <= rx+3; x++) {
+                    if (y > 0 && y < worldHeight-1 && x > 0 && x < worldWidth-1) {
+                        map[y][x] = 0;
+                    }
+                }
+            }
+        }
+        
+        // Дополнительные проходы
+        for (let i = 0; i < 300; i++) {
+            let x = 5 + Math.floor(Math.random() * (worldWidth - 10));
+            let y = 5 + Math.floor(Math.random() * (worldHeight - 10));
+            if (map[y][x] === 1) {
+                let neighbors = 0;
+                if (y > 0 && map[y-1][x] === 0) neighbors++;
+                if (y < worldHeight-1 && map[y+1][x] === 0) neighbors++;
+                if (x > 0 && map[y][x-1] === 0) neighbors++;
+                if (x < worldWidth-1 && map[y][x+1] === 0) neighbors++;
+                if (neighbors >= 2) map[y][x] = 0;
+            }
+        }
+    }
+    
+    function generateWorld() {
+        walls = [];
+        items = [];
+        chests = [];
+        enemies = [];
+        portal = null;
+        relics = [];
+        decorations = [];
+        
+        for (let y = 0; y < worldHeight; y++) {
+            for (let x = 0; x < worldWidth; x++) {
+                if (map[y][x] === 1) {
+                    walls.push({ x: x * tileSize, y: y * tileSize, w: tileSize, h: tileSize });
+                }
+            }
+        }
+        
+        player.x = tileSize * 4;
+        player.y = tileSize * 4;
+        player.hp = player.maxHp;
+        gameActive = true;
+        
+        let availableCells = [];
+        for (let y = 5; y < worldHeight - 5; y++) {
+            for (let x = 5; x < worldWidth - 5; x++) {
+                if (map[y][x] === 0 && !(x === 4 && y === 4)) {
+                    availableCells.push({ x: x * tileSize + tileSize/2, y: y * tileSize + tileSize/2 });
+                }
+            }
+        }
+        
+        for (let i = availableCells.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableCells[i], availableCells[j]] = [availableCells[j], availableCells[i]];
+        }
+        
+        let idx = 0;
+        let types = ['strength', 'health', 'speed'];
+        for (let i = 0; i < 3 && idx < availableCells.length; i++) {
+            relics.push(new Relic(availableCells[idx].x, availableCells[idx].y, types[i]));
+            idx++;
+        }
+        
+        for (let i = 0; i < 10 && idx < availableCells.length; i++) {
+            chests.push(new Chest(availableCells[idx].x, availableCells[idx].y));
+            idx++;
+        }
+        
+        for (let i = 0; i < 15 && idx < availableCells.length; i++) {
+            let enemyTypes = ['skeleton', 'ghost', 'golem'];
+            let type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            enemies.push(new Enemy(availableCells[idx].x, availableCells[idx].y, type));
+            idx++;
+        }
+        
+        for (let i = 0; i < 20 && idx < availableCells.length; i++) {
+            let itemTypes = ['health', 'coin', 'arrow'];
+            let type = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            let amount = type === 'coin' ? 15 + Math.floor(Math.random() * 25) : (type === 'health' ? 1 : 3 + Math.floor(Math.random() * 5));
+            items.push(new Item(availableCells[idx].x, availableCells[idx].y, type, amount));
+            idx++;
+        }
+        
+        // ДЕКОРАЦИИ
+        for (let i = 0; i < 50 && idx < availableCells.length; i++) {
+            let decorTypes = ['web', 'crystal', 'torch', 'bat'];
+            let type = decorTypes[Math.floor(Math.random() * decorTypes.length)];
+            decorations.push(new Decoration(availableCells[idx].x, availableCells[idx].y, type));
+            idx++;
+        }
+        
+        player.relics = 0;
+        player.totalRelics = 3;
+        updateUI();
+    }
+    
+    class Decoration {
+        constructor(x, y, type) {
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.frame = Math.random() * Math.PI * 2;
+        }
+        
+        draw() {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) return;
+            
+            if (this.type === 'web') {
+                ctx.beginPath();
+                ctx.moveTo(sx - 8, sy - 5);
+                ctx.lineTo(sx, sy + 8);
+                ctx.lineTo(sx + 8, sy - 5);
+                ctx.fillStyle = 'rgba(200,200,200,0.3)';
+                ctx.fill();
+                for (let i = -5; i <= 5; i+=2) {
+                    ctx.beginPath();
+                    ctx.moveTo(sx + i, sy - 8);
+                    ctx.lineTo(sx + i, sy + 8);
+                    ctx.strokeStyle = 'rgba(200,200,200,0.2)';
+                    ctx.stroke();
+                }
+            } else if (this.type === 'crystal') {
+                ctx.fillStyle = '#88aaff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#4488ff';
+                ctx.beginPath();
+                ctx.moveTo(sx, sy - 10);
+                ctx.lineTo(sx - 6, sy + 5);
+                ctx.lineTo(sx, sy + 2);
+                ctx.lineTo(sx + 6, sy + 5);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            } else if (this.type === 'torch') {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(sx - 3, sy - 5, 6, 15);
+                ctx.fillStyle = '#ffaa44';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#ff6600';
+                ctx.beginPath();
+                ctx.arc(sx, sy - 8, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            } else if (this.type === 'bat') {
+                this.frame += 0.05;
+                let fly = Math.sin(this.frame) * 3;
+                ctx.fillStyle = '#664466';
+                ctx.beginPath();
+                ctx.ellipse(sx, sy + fly, 6, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(sx - 6, sy + fly - 2);
+                ctx.lineTo(sx - 12, sy + fly - 6);
+                ctx.lineTo(sx - 6, sy + fly - 1);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(sx + 6, sy + fly - 2);
+                ctx.lineTo(sx + 12, sy + fly - 6);
+                ctx.lineTo(sx + 6, sy + fly - 1);
+                ctx.fill();
+            }
+        }
+    }
+    
+    class Enemy {
+        constructor(x, y, type = 'skeleton') {
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.radius = 16;
+            this.attackCooldown = 0;
+            
+            if (type === 'skeleton') {
+                this.hp = 40;
+                this.maxHp = 40;
+                this.speed = 1.1;
+                this.damage = 12;
+                this.color = '#aa8866';
+                this.reward = 20;
+            } else if (type === 'ghost') {
+                this.hp = 25;
+                this.maxHp = 25;
+                this.speed = 1.8;
+                this.damage = 8;
+                this.color = '#aa88ff';
+                this.reward = 25;
+            } else {
+                this.hp = 80;
+                this.maxHp = 80;
+                this.speed = 0.7;
+                this.damage = 18;
+                this.color = '#88aacc';
+                this.reward = 50;
+                this.radius = 22;
+            }
+        }
+        
+        update() {
+            const dx = player.x - this.x;
+            const dy = player.y - this.y;
+            const dist = Math.hypot(dx, dy);
+            
+            if (dist > 0.5 && dist < 400) {
+                let moveX = (dx / dist) * this.speed;
+                let moveY = (dy / dist) * this.speed;
+                let newX = this.x + moveX;
+                let newY = this.y + moveY;
+                
+                let collision = false;
+                for (let wall of walls) {
+                    if (newX + this.radius > wall.x && newX - this.radius < wall.x + wall.w &&
+                        newY + this.radius > wall.y && newY - this.radius < wall.y + wall.h) {
+                        collision = true;
+                        break;
+                    }
+                }
+                if (!collision) {
+                    this.x = newX;
+                    this.y = newY;
+                }
+            }
+            
+            if (this.attackCooldown > 0) this.attackCooldown--;
+            
+            if (dist < this.radius + player.radius && this.attackCooldown === 0) {
+                if (player.invincibleTimer <= 0) {
+                    let damage = this.damage;
+                    player.hp = Math.max(0, player.hp - damage);
+                    player.invincibleTimer = 30;
+                    showDamageNumber(this.x, this.y, damage);
+                    updateUI();
+                    if (player.hp <= 0) {
+                        gameActive = false;
+                        showGameOver();
+                    }
+                }
+                this.attackCooldown = 30;
+            }
+        }
+        
+        draw() {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width + 50 || sy < -50 || sy > canvas.height + 50) return;
+            
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(`${Math.floor(this.hp)}`, sx - 12, sy - 16);
+            
+            const hpPercent = this.hp / this.maxHp;
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(sx - 18, sy - 22, 36, 4);
+            ctx.fillStyle = '#33ff33';
+            ctx.fillRect(sx - 18, sy - 22, 36 * hpPercent, 4);
+            
+            if (this.type === 'ghost') {
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.arc(sx, sy, this.radius + 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#aa88ff';
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        takeDamage(amount) {
+            this.hp -= amount;
+            if (this.hp <= 0) totalKills++;
+            return this.hp <= 0;
+        }
+    }
+    
+    class Chest {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.radius = 14;
+            this.opened = false;
+        }
+        
+        draw() {
+            if (this.opened) return;
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width + 50) return;
+            
+            ctx.fillStyle = '#8B6914';
+            ctx.fillRect(sx - 12, sy - 10, 24, 20);
+            ctx.fillStyle = '#DAA520';
+            ctx.fillRect(sx - 8, sy - 14, 16, 8);
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(sx - 4, sy - 12, 8, 4);
+        }
+        
+        open() {
+            if (this.opened) return;
+            this.opened = true;
+            let rewardType = Math.random(), msg = "";
+            if (rewardType < 0.35) { let amount = 15 + Math.floor(Math.random() * 35); player.coins += amount; msg = `💰 +${amount} монет`; }
+            else if (rewardType < 0.6) { inventory.healthPotion++; msg = `💊 +1 зелье здоровья`; }
+            else if (rewardType < 0.85) { let amount = 5 + Math.floor(Math.random() * 8); inventory.arrow += amount; msg = `🏹 +${amount} стрел`; }
+            else { player.maxHp += 10; player.hp = Math.min(player.hp + 10, player.maxHp); msg = `❤️ +10 максимального здоровья`; }
+            showLootMessage(`📦 ${msg}`); updateUI();
+        }
+    }
+    
+    class Portal {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.radius = 20;
+            this.active = true;
+        }
+        
+        draw() {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width + 50) return;
+            
+            ctx.fillStyle = '#44aaff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#44aaff';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, 18, 25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#88ccff';
+            ctx.beginPath();
+            ctx.ellipse(sx, sy, 12, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText('🌀', sx - 8, sy + 6);
+            ctx.shadowBlur = 0;
+        }
+        
+        teleport() {
+            showVictory();
+        }
+    }
+    
+    class Bullet {
+        constructor(x, y, angle) {
+            this.x = x;
+            this.y = y;
+            this.vx = Math.cos(angle) * 7;
+            this.vy = Math.sin(angle) * 7;
+            this.radius = 5;
+            this.damage = 20;
+            this.life = 100;
+        }
+        
+        update() {
+            let newX = this.x + this.vx;
+            let newY = this.y + this.vy;
+            
+            for (let wall of walls) {
+                if (newX + this.radius > wall.x && newX - this.radius < wall.x + wall.w &&
+                    newY + this.radius > wall.y && newY - this.radius < wall.y + wall.h) {
+                    return false;
+                }
+            }
+            
+            this.x = newX;
+            this.y = newY;
+            this.life--;
+            return this.life > 0;
+        }
+        
+        draw() {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -30 || sx > canvas.width + 30) return;
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    class Item {
+        constructor(x, y, type, amount = 1) {
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.amount = amount;
+            this.radius = 12;
+        }
+        
+        draw() {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width + 50) return;
+            
+            let emoji = this.type === 'health' ? '💊' : (this.type === 'coin' ? '💰' : '🏹');
+            ctx.font = '20px monospace';
+            ctx.fillText(emoji, sx - 10, sy + 8);
+            ctx.font = '10px monospace';
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText(`${this.amount}`, sx - 5, sy + 20);
+        }
+        
+        collect() {
+            if (this.type === 'health') { player.hp = Math.min(player.maxHp, player.hp + 30); showLootMessage(`💊 +30 HP`); }
+            else if (this.type === 'coin') { player.coins += this.amount; showLootMessage(`💰 +${this.amount} монет`); }
+            else if (this.type === 'arrow') { inventory.arrow += this.amount; showLootMessage(`🏹 +${this.amount} стрел`); }
+            updateUI(); return true;
+        }
+    }
+    
+    class Relic {
+        constructor(x, y, type) {
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.radius = 16;
+            this.collected = false;
+            
+            if (type === 'strength') this.name = '💪 Реликвия Силы';
+            else if (type === 'health') this.name = '❤️ Реликвия Здоровья';
+            else this.name = '✨ Реликвия Скорости';
+        }
+        
+        draw() {
+            if (this.collected) return;
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width + 50) return;
+            
+            ctx.fillStyle = '#ffaa44';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffaa44';
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText('🏺', sx - 10, sy + 7);
+            ctx.shadowBlur = 0;
+        }
+        
+        collect() {
+            this.collected = true;
+            player.relics++;
+            if (this.type === 'strength') player.damage += 10;
+            else if (this.type === 'health') player.maxHp += 30;
+            else player.speed += 1;
+            showLootMessage(`🏆 ${this.name}!`);
+            updateUI();
+            
+            if (player.relics >= player.totalRelics && !portal) {
+                portal = new Portal(tileSize * 4, tileSize * 4);
+                showToast("✨ Портал открылся у входа в лабиринт! Найдите его, чтобы завершить игру!");
+                playSound('portal', 0.4);
+            }
+            return true;
+        }
+    }
+    
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 4;
+            this.vy = (Math.random() - 0.5) * 4;
+            this.life = 15;
+            this.color = color;
+            this.size = 3;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life--;
+            return this.life > 0;
+        }
+        draw() {
+            const sx = this.x - camera.x;
+            const sy = this.y - camera.y;
+            ctx.fillStyle = this.color;
+            ctx.fillRect(sx, sy, this.size, this.size);
+        }
+    }
+    
+    function checkWallCollision(x, y, radius) {
+        for (let wall of walls) {
+            if (x + radius > wall.x && x - radius < wall.x + wall.w && y + radius > wall.y && y - radius < wall.y + wall.h) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // ТЕМНОТА
+    function applyDarkness() {
+        const psx = player.x - camera.x;
+        const psy = player.y - camera.y;
+        
+        const gradient = ctx.createRadialGradient(psx, psy, 50, psx, psy, 350);
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(0.4, 'rgba(0,0,0,0.3)');
+        gradient.addColorStop(0.7, 'rgba(0,0,0,0.7)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.95)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    function updateUI() {
+        document.getElementById('hp').innerHTML = Math.floor(player.hp);
+        document.getElementById('maxHp').innerHTML = player.maxHp;
+        document.getElementById('damage').innerHTML = player.damage;
+        document.getElementById('coins').innerHTML = player.coins;
+        document.getElementById('relics').innerHTML = player.relics;
+        document.getElementById('totalRelics').innerHTML = player.totalRelics;
+        
+        document.getElementById('inventoryList').innerHTML = `
+            <div class="inv-slot" onclick="window.useItem('healthPotion')">💊 Зелье здоровья: ${inventory.healthPotion}</div>
+            <div class="inv-slot">🏹 Стрелы: ${inventory.arrow}</div>
+            <div class="inv-slot">💰 Монеты: ${player.coins}</div>
+        `;
+    }
+    
+    function useItem(item) {
+        if (item === 'healthPotion' && inventory.healthPotion > 0 && player.hp < player.maxHp) {
+            inventory.healthPotion--; player.hp = Math.min(player.maxHp, player.hp + 50);
+            showLootMessage(`💊 Зелье здоровья +50 HP`); updateUI();
+        } else if (item === 'healthPotion' && player.hp >= player.maxHp) showToast("❤️ У вас уже полное здоровье!", true);
+        else if (item === 'healthPotion' && inventory.healthPotion <= 0) showToast("❌ Нет зелий здоровья!", true);
+    }
+    
+    function craftArrows() {
+        if (player.coins >= 20) { player.coins -= 20; inventory.arrow += 10; showLootMessage(`🏹 +10 стрел за 20 монет`); updateUI(); }
+        else showToast(`❌ Нужно 20 монет! У вас ${player.coins}`, true);
+    }
+    
+    function attackSword() {
+        if (weapon.swordCooldown > 0) return;
+        
+        let angle = Math.atan2(mouseY - (player.y - camera.y), mouseX - (player.x - camera.x));
+        let hit = false;
+        playSound('sword', 0.35);
+        
+        for (let i = 0; i < enemies.length; i++) {
+            const e = enemies[i];
+            const dx = e.x - player.x;
+            const dy = e.y - player.y;
+            const dist = Math.hypot(dx, dy);
+            const enemyAngle = Math.atan2(dy, dx);
+            let angleDiff = Math.abs(angle - enemyAngle);
+            if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+            
+            if (dist < weapon.attackRange && angleDiff < weapon.attackAngle) {
+                e.takeDamage(player.damage);
+                for (let j = 0; j < 6; j++) particles.push(new Particle(e.x, e.y, '#ffaa88'));
+                showDamageNumber(e.x, e.y, player.damage);
+                hit = true;
+                if (e.hp <= 0) { enemies.splice(i, 1); player.coins += e.reward; updateUI(); showLootMessage(`💰 +${e.reward} монет`); i--; }
+            }
+        }
+        
+        if (hit) {
+            weapon.swordCooldown = weapon.swordDelay;
+        } else {
+            weapon.swordCooldown = weapon.swordDelay / 2;
+        }
+    }
+    
+    function attackBow() {
+        if (weapon.bowCooldown > 0) return;
+        if (inventory.arrow <= 0) { showToast("❌ Нет стрел! Крафтите за монеты (2)", true); return; }
+        
+        inventory.arrow--;
+        let angle = Math.atan2(mouseY - (player.y - camera.y), mouseX - (player.x - camera.x));
+        bullets.push(new Bullet(player.x, player.y, angle));
+        weapon.bowCooldown = weapon.bowDelay;
+        updateUI();
+        playSound('bow', 0.3);
+    }
+    
+    function checkCollisions() {
+        for (let i = 0; i < items.length; i++) {
+            if (Math.hypot(player.x - items[i].x, player.y - items[i].y) < player.radius + items[i].radius) {
+                if (items[i].collect()) { items.splice(i, 1); i--; }
+            }
+        }
+        
+        for (let i = 0; i < chests.length; i++) {
+            if (!chests[i].opened && Math.hypot(player.x - chests[i].x, player.y - chests[i].y) < player.radius + chests[i].radius) chests[i].open();
+        }
+        
+        for (let i = 0; i < relics.length; i++) {
+            if (!relics[i].collected && Math.hypot(player.x - relics[i].x, player.y - relics[i].y) < player.radius + relics[i].radius) relics[i].collect();
+        }
+        
+        if (portal && Math.hypot(player.x - portal.x, player.y - portal.y) < player.radius + portal.radius) {
+            portal.teleport();
+        }
+    }
+    
+    function update() {
+        if (!gameStarted || !gameActive || isPaused) return;
+        
+        let moveX = 0, moveY = 0;
+        if (keysPressed.w || keysPressed.ц) moveY -= 1;
+        if (keysPressed.s || keysPressed.ы) moveY += 1;
+        if (keysPressed.a || keysPressed.ф) moveX -= 1;
+        if (keysPressed.d || keysPressed.в) moveX += 1;
+        if (moveX !== 0 || moveY !== 0) {
+            const len = Math.hypot(moveX, moveY);
+            moveX /= len;
+            moveY /= len;
+            
+            if (frame - lastStepFrame > 25) {
+                lastStepFrame = frame;
+                playSound('footstep', 0.1);
+            }
+        }
+        
+        let newX = player.x + moveX * player.speed;
+        let newY = player.y + moveY * player.speed;
+        
+        if (!checkWallCollision(newX, player.y, player.radius)) player.x = newX;
+        if (!checkWallCollision(player.x, newY, player.radius)) player.y = newY;
+        
+        camera.x = player.x - canvas.width / 2;
+        camera.y = player.y - canvas.height / 2;
+        camera.x = Math.min(Math.max(camera.x, 0), worldWidth * tileSize - canvas.width);
+        camera.y = Math.min(Math.max(camera.y, 0), worldHeight * tileSize - canvas.height);
+        
+        if (weapon.swordCooldown > 0) weapon.swordCooldown--;
+        if (weapon.bowCooldown > 0) weapon.bowCooldown--;
+        
+        if (mouseDown) attackSword();
+        if (rightMouseDown) attackBow();
+        
+        bullets = bullets.filter(b => {
+            if (!b.update()) return false;
+            for (let i = 0; i < enemies.length; i++) {
+                if (Math.hypot(b.x - enemies[i].x, b.y - enemies[i].y) < b.radius + enemies[i].radius) {
+                    enemies[i].takeDamage(b.damage);
+                    showDamageNumber(enemies[i].x, enemies[i].y, b.damage);
+                    for (let j = 0; j < 5; j++) particles.push(new Particle(enemies[i].x, enemies[i].y, '#ffff88'));
+                    if (enemies[i].hp <= 0) { player.coins += enemies[i].reward; updateUI(); showLootMessage(`💰 +${enemies[i].reward} монет`); enemies.splice(i, 1); i--; }
+                    return false;
+                }
+            }
+            return true;
+        });
+        
+        for (let e of enemies) e.update();
+        particles = particles.filter(p => p.update());
+        checkCollisions();
+        
+        if (player.invincibleTimer > 0) player.invincibleTimer--;
+        frame++;
+    }
+    
+    function draw() {
+        if (!gameStarted) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Стены (НЕПРОЗРАЧНЫЕ)
+        for (let y = Math.max(0, Math.floor(camera.y / tileSize) - 5); y < Math.min(worldHeight, Math.floor(camera.y / tileSize) + canvas.height / tileSize + 5); y++) {
+            for (let x = Math.max(0, Math.floor(camera.x / tileSize) - 5); x < Math.min(worldWidth, Math.floor(camera.x / tileSize) + canvas.width / tileSize + 5); x++) {
+                let sx = x * tileSize - camera.x;
+                let sy = y * tileSize - camera.y;
+                if (sx > -tileSize && sx < canvas.width + tileSize && sy > -tileSize && sy < canvas.height + tileSize) {
+                    if (map[y][x] === 1) {
+                        ctx.fillStyle = '#2a2a3a';
+                        ctx.fillRect(sx, sy, tileSize, tileSize);
+                        ctx.strokeStyle = '#1a1a2a';
+                        ctx.strokeRect(sx, sy, tileSize, tileSize);
+                        ctx.fillStyle = '#3a3a4a';
+                        ctx.fillRect(sx + 4, sy + 4, tileSize - 8, tileSize - 8);
+                    } else {
+                        ctx.fillStyle = '#2a2a3a';
+                        ctx.fillRect(sx, sy, tileSize, tileSize);
+                        ctx.strokeStyle = '#1a1a2a';
+                        ctx.strokeRect(sx, sy, tileSize, tileSize);
+                    }
+                }
+            }
+        }
+        
+        for (let d of decorations) d.draw();
+        for (let item of items) item.draw();
+        for (let chest of chests) chest.draw();
+        for (let relic of relics) relic.draw();
+        if (portal) portal.draw();
+        for (let e of enemies) e.draw();
+        for (let b of bullets) b.draw();
+        for (let p of particles) p.draw();
+        
+        const psx = player.x - camera.x;
+        const psy = player.y - camera.y;
+        ctx.beginPath();
+        ctx.arc(psx, psy, player.radius, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(psx - 4, psy - 4, 4, psx, psy, 18);
+        grad.addColorStop(0, '#f7931a');
+        grad.addColorStop(1, '#ff5500');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(psx - 5, psy - 3, 2.5, 0, Math.PI * 2);
+        ctx.arc(psx + 5, psy - 3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(psx - 5, psy - 3, 1.2, 0, Math.PI * 2);
+        ctx.arc(psx + 5, psy - 3, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#2a2a2a';
+        ctx.beginPath();
+        ctx.ellipse(psx, psy - 10, 12, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(psx, psy);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.strokeStyle = '#f7931a';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, 12, 0, Math.PI * 2);
+        ctx.strokeStyle = '#f7931a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(mouseX - 18, mouseY);
+        ctx.lineTo(mouseX + 18, mouseY);
+        ctx.moveTo(mouseX, mouseY - 18);
+        ctx.lineTo(mouseX, mouseY + 18);
+        ctx.stroke();
+        
+        // ТЕМНОТА (сильная)
+        applyDarkness();
+    }
+    
+    async function saveToCloud() {
+        const saveData = { hp: player.hp, maxHp: player.maxHp, damage: player.damage, coins: player.coins, relics: player.relics, speed: player.speed, x: player.x, y: player.y, inventory: inventory, totalKills: totalKills };
+        try { await fetch(`${SCRIPT_URL}?action=saveGameData&login=${currentUser}&gameId=${GAME_ID}&saveJson=${JSON.stringify(saveData)}`); showToast("✅ Сохранено!"); } catch(e) { showToast("❌ Ошибка", true); }
+    }
+    
+    async function loadFromCloud() {
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=loadGameData&login=${currentUser}&gameId=${GAME_ID}`);
+            const data = await res.json();
+            if (data.success && data.saveData && data.saveData !== "{}") {
+                const save = JSON.parse(data.saveData);
+                player.hp = save.hp > 0 ? save.hp : 100;
+                player.maxHp = save.maxHp || 100;
+                player.damage = save.damage || 15;
+                player.coins = save.coins || 0;
+                player.relics = save.relics || 0;
+                player.speed = save.speed || 4;
+                player.x = save.x || 400;
+                player.y = save.y || 300;
+                inventory = save.inventory || { healthPotion: 2, arrow: 10 };
+                totalKills = save.totalKills || 0;
+                generateMaze();
+                generateWorld();
+                gameActive = true;
+                updateUI();
+                showToast("📀 Прогресс загружен!"); return true;
+            } else { generateMaze(); generateWorld(); updateUI(); return false; }
+        } catch(e) { generateMaze(); generateWorld(); updateUI(); return false; }
+    }
+    
+    function startGame() {
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        startAmbient();
+        document.getElementById('menuOverlay').style.display = 'none';
+        document.getElementById('gameUI').classList.remove('hidden');
+        gameStarted = true; gameActive = true; isPaused = false;
+        showToast("Найдите 3 реликвии в темноте!");
+    }
+    
+    function pauseGame() { if (!gameStarted) return; isPaused = true; document.getElementById('menuOverlay').style.display = 'flex'; document.getElementById('mainMenuPanel').classList.remove('hidden'); document.getElementById('helpPanel').classList.add('hidden'); }
+    function resumeGame() { isPaused = false; document.getElementById('menuOverlay').style.display = 'none'; if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
+    
+    function init() {
+        initAudio();
+        generateMaze();
+        generateWorld();
+        updateUI();
+        
+        document.getElementById('startGameBtn').onclick = startGame;
+        document.getElementById('continueGameBtn').onclick = async () => { await loadFromCloud(); startGame(); };
+        document.getElementById('helpMenuBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.add('hidden'); document.getElementById('helpPanel').classList.remove('hidden'); };
+        document.getElementById('backToMainBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.remove('hidden'); document.getElementById('helpPanel').classList.add('hidden'); };
+        document.getElementById('menuBtn').onclick = pauseGame;
+        document.getElementById('victoryRestartBtn').onclick = restartGame;
+        document.getElementById('victoryMenuBtn').onclick = () => {
+            document.getElementById('victoryPanel').classList.add('hidden');
+            document.getElementById('menuOverlay').style.display = 'flex';
+            gameStarted = false;
+        };
+        document.getElementById('gameOverRestartBtn').onclick = restartGame;
+        document.getElementById('gameOverMenuBtn').onclick = () => {
+            document.getElementById('gameOverPanel').classList.add('hidden');
+            document.getElementById('menuOverlay').style.display = 'flex';
+            gameStarted = false;
+        };
+        
+        const updateMouse = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+            let cx, cy;
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; e.preventDefault(); }
+            else { cx = e.clientX; cy = e.clientY; }
+            mouseX = (cx - rect.left) * scaleX; mouseY = (cy - rect.top) * scaleY;
+            mouseX = Math.min(Math.max(mouseX, 0), canvas.width); mouseY = Math.min(Math.max(mouseY, 0), canvas.height);
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        };
+        
+        canvas.addEventListener('mousemove', updateMouse);
+        canvas.addEventListener('mousedown', (e) => { e.preventDefault(); if (e.button === 0) mouseDown = true; if (e.button === 2) rightMouseDown = true; if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); });
+        window.addEventListener('mouseup', (e) => { if (e.button === 0) mouseDown = false; if (e.button === 2) rightMouseDown = false; });
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        canvas.addEventListener('touchmove', updateMouse);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); mouseDown = true; updateMouse(e); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); });
+        canvas.addEventListener('touchend', () => mouseDown = false);
+        
+        window.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w') keysPressed.w = true; if (k === 's') keysPressed.s = true; if (k === 'a') keysPressed.a = true; if (k === 'd') keysPressed.d = true;
+            if (k === 'ц') keysPressed.ц = true; if (k === 'ы') keysPressed.ы = true; if (k === 'ф') keysPressed.ф = true; if (k === 'в') keysPressed.в = true;
+            if (k === '1') useItem('healthPotion'); if (k === '2') craftArrows();
+            if (k === '3') showToast(`🏆 Реликвий: ${player.relics}/${player.totalRelics} | 💰 Монет: ${player.coins}`, false);
+            if (k === 'escape' && gameStarted) { if (isPaused) resumeGame(); else pauseGame(); }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w') keysPressed.w = false; if (k === 's') keysPressed.s = false; if (k === 'a') keysPressed.a = false; if (k === 'd') keysPressed.d = false;
+            if (k === 'ц') keysPressed.ц = false; if (k === 'ы') keysPressed.ы = false; if (k === 'ф') keysPressed.ф = false; if (k === 'в') keysPressed.в = false;
+        });
+        
+        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+        gameLoop();
+        
+        setInterval(() => { if (gameStarted && gameActive && !isPaused) saveToCloud(); }, 60000);
+    }
+    
+    window.useItem = useItem;
+    init();
+</script>
+</body>
+</html>
