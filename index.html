@@ -15,17 +15,6 @@
         }
         .container { max-width: 1400px; margin: 0 auto; }
 
-        /* Анимации */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
         /* ВХОД */
         .auth-card, .register-card {
             background: rgba(20,20,35,0.95);
@@ -35,7 +24,6 @@
             width: 360px;
             margin: 80px auto;
             border: 1px solid #f7931a;
-            animation: fadeIn 0.5s ease;
         }
         .auth-card input, .register-card input {
             width: 100%;
@@ -45,12 +33,6 @@
             background: #1e1e2e;
             border: 1px solid #3a3a4e;
             color: white;
-            transition: all 0.3s;
-        }
-        .auth-card input:focus, .register-card input:focus {
-            outline: none;
-            border-color: #f7931a;
-            box-shadow: 0 0 10px rgba(247,147,26,0.3);
         }
         .auth-card button, .register-card button {
             width: 100%;
@@ -60,11 +42,6 @@
             border-radius: 60px;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .auth-card button:hover, .register-card button:hover {
-            transform: scale(1.02);
-            box-shadow: 0 5px 20px rgba(247,147,26,0.4);
         }
         .switch-link { text-align: center; margin-top: 16px; font-size: 13px; color: #f7931a; cursor: pointer; }
         .spinner {
@@ -88,7 +65,6 @@
             padding: 12px 24px;
             border-radius: 60px;
             margin-bottom: 24px;
-            animation: fadeIn 0.5s ease;
         }
         .balance-box { background: #f7931a; padding: 6px 18px; border-radius: 60px; color: black; font-weight: bold; }
         .nav-tabs {
@@ -100,25 +76,8 @@
             flex-wrap: nowrap;
             padding-bottom: 8px;
         }
-        .nav-tabs .nav-btn {
-            flex: 0 0 auto;
-            background: #1a1a2a;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 40px;
-            color: #ccc;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .nav-tabs .nav-btn:hover {
-            background: #2a2a3a;
-            transform: translateY(-2px);
-        }
-        .nav-btn.active {
-            background: #f7931a;
-            color: black;
-            box-shadow: 0 0 15px rgba(247,147,26,0.5);
-        }
+        .nav-tabs .nav-btn { flex: 0 0 auto; background: #1a1a2a; border: none; padding: 10px 24px; border-radius: 40px; color: #ccc; cursor: pointer; }
+        .nav-btn.active { background: #f7931a; color: black; }
 
         /* КАТАЛОГИ */
         .games-catalog, .library-catalog {
@@ -126,86 +85,48 @@
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 24px;
             margin-top: 20px;
-            animation: fadeIn 0.5s ease;
         }
         .game-card {
             background: #12121c;
             border-radius: 32px;
             padding: 20px;
             text-align: center;
-            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transition: all 0.3s;
             border: 1px solid #2a2a3a;
-            cursor: pointer;
         }
-        .game-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            background: #1e1e30;
-            border-color: #f7931a;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-        }
-        .game-emoji { font-size: 54px; margin-bottom: 12px; transition: transform 0.3s; }
-        .game-card:hover .game-emoji { transform: scale(1.1); }
-        .game-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; }
-        .game-price { font-size: 0.9rem; color: #f7931a; margin-bottom: 12px; font-weight: bold; }
-        .action-btn {
-            background: #f7931a;
-            border: none;
-            padding: 10px;
-            border-radius: 60px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.2s;
-        }
-        .action-btn:hover { transform: scale(0.98); filter: brightness(1.1); }
+        .game-card:hover { transform: translateY(-6px); background: #1e1e30; border-color: #f7931a; }
+        .game-emoji { font-size: 54px; margin-bottom: 12px; }
+        .game-title { font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
+        .game-price { font-size: 0.9rem; color: #f7931a; margin-bottom: 12px; }
+        .action-btn { background: #f7931a; border: none; padding: 10px; border-radius: 60px; font-weight: bold; cursor: pointer; width: 100%; }
         .buy-btn { background: #2c7a4d; }
-        .play-btn { background: #f7931a; }
         .admin-panel { background: #0a0a12; border-radius: 32px; padding: 20px; margin-top: 20px; }
         .account-stats { background: #0f0f18; border-radius: 32px; padding: 28px; text-align: center; }
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            visibility: hidden;
-            opacity: 0;
-            transition: 0.2s;
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
+            visibility: hidden; opacity: 0; transition: 0.2s;
         }
         .modal-overlay.active { visibility: visible; opacity: 1; }
         .modal-window {
-            background: #1a1a2a;
-            border-radius: 40px;
-            padding: 28px;
-            width: 340px;
-            border: 1px solid #f7931a;
+            background: #1a1a2a; border-radius: 40px; padding: 28px; width: 340px; border: 1px solid #f7931a;
         }
-        .modal-window input, .modal-window textarea {
-            width: 100%;
-            padding: 12px;
-            border-radius: 60px;
-            background: #1e1e2e;
-            border: 1px solid #3a3a4e;
-            color: white;
-            margin: 8px 0;
-        }
+        .modal-window input, .modal-window textarea { width: 100%; padding: 12px; border-radius: 60px; background: #1e1e2e; border: 1px solid #3a3a4e; color: white; margin: 8px 0; }
         hr { border-color: #2a2a3a; margin: 20px 0; }
         .empty-library { text-align: center; padding: 60px; color: #888; font-size: 1.2rem; }
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #f7931a; color: black; padding: 12px 28px; border-radius: 60px;
+            font-weight: bold; z-index: 3000; opacity: 0; transition: 0.3s; pointer-events: none;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <!-- ВХОД -->
     <div id="authPanel">
         <div class="auth-card">
             <h3>🎮 BEAM</h3>
-            <p style="margin-bottom:15px; font-size:12px;">Магазин игр на AMDs</p>
             <input type="text" id="loginUsername" placeholder="Логин">
             <input type="password" id="loginPassword" placeholder="Пароль">
             <div class="spinner" id="loginSpinner"></div>
@@ -215,7 +136,6 @@
         <div id="authMessage" style="text-align:center; color:#f7931a;"></div>
     </div>
 
-    <!-- РЕГИСТРАЦИЯ -->
     <div id="registerPanel" style="display:none;">
         <div class="register-card">
             <h3>📝 РЕГИСТРАЦИЯ</h3>
@@ -229,10 +149,9 @@
         <div id="regMessage" style="text-align:center; color:#f7931a;"></div>
     </div>
 
-    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
     <div id="gamePanel" style="display:none;">
         <div class="top-bar">
-            <div style="font-size:1.3rem; font-weight:bold;">🎮 BEAM</div>
+            <div>🎮 BEAM</div>
             <div class="balance-box">💰 <span id="globalBalance">0</span> AMD</div>
         </div>
         <div class="nav-tabs">
@@ -242,62 +161,40 @@
             <button class="nav-btn" id="adminTabBtn" style="display:none;" data-tab="admin">🔧 АДМИН</button>
         </div>
 
-        <!-- МАГАЗИН -->
-        <div id="shopTab" class="tab-content">
-            <div class="games-catalog" id="shopCatalog"></div>
-        </div>
-
-        <!-- БИБЛИОТЕКА (купленные игры) -->
-        <div id="libraryTab" class="tab-content" style="display:none;">
-            <div class="library-catalog" id="libraryCatalog"></div>
-        </div>
-
-        <!-- АККАУНТ -->
-        <div id="accountTab" class="tab-content" style="display:none;">
-            <div class="account-stats">
-                <h3>👤 ПРОФИЛЬ</h3>
-                <p>Логин: <strong id="accLogin">-</strong></p>
-                <p>Баланс: <strong id="accBalance">0</strong> AMD</p>
-                <button id="logoutBtn" class="action-btn" style="background:#555;">🚪 Выйти</button>
-            </div>
-        </div>
-
-        <!-- АДМИН -->
-        <div id="adminTab" class="tab-content" style="display:none;">
-            <div class="admin-panel">
-                <h4>🔧 УПРАВЛЕНИЕ</h4>
-                <input type="text" id="adminTargetUser" placeholder="Логин игрока" style="width:100%; padding:10px; margin:8px 0;">
-                <input type="number" id="adminNewBalance" placeholder="Сумма" style="width:100%; margin:8px 0;">
-                <button id="adminAddBalance" class="action-btn" style="background:#2c7a4d;">➕ Добавить баланс</button>
-                <button id="adminSetBalance" class="action-btn" style="background:#f7931a;">🎯 Установить баланс</button>
-                <hr>
-                <button id="adminAddGameBtn" class="action-btn" style="background:#f7931a;">➕ ДОБАВИТЬ ИГРУ</button>
-            </div>
-        </div>
+        <div id="shopTab" class="tab-content"><div class="games-catalog" id="shopCatalog"></div></div>
+        <div id="libraryTab" class="tab-content" style="display:none;"><div class="library-catalog" id="libraryCatalog"></div></div>
+        <div id="accountTab" class="tab-content" style="display:none;"><div class="account-stats"><h3>👤 ПРОФИЛЬ</h3><p>Логин: <strong id="accLogin">-</strong></p><p>Баланс: <strong id="accBalance">0</strong> AMD</p><button id="logoutBtn" class="action-btn" style="background:#555;">🚪 Выйти</button></div></div>
+        <div id="adminTab" class="tab-content" style="display:none;"><div class="admin-panel"><h4>🔧 УПРАВЛЕНИЕ</h4><input type="text" id="adminTargetUser" placeholder="Логин игрока"><input type="number" id="adminNewBalance" placeholder="Сумма"><button id="adminAddBalance" class="action-btn" style="background:#2c7a4d;">➕ Добавить баланс</button><button id="adminSetBalance" class="action-btn" style="background:#f7931a;">🎯 Установить баланс</button><hr><button id="adminAddGameBtn" class="action-btn">➕ ДОБАВИТЬ ИГРУ</button></div></div>
     </div>
 </div>
 
-<!-- МОДАЛКА ДОБАВЛЕНИЯ ИГРЫ -->
 <div id="addGameModal" class="modal-overlay">
     <div class="modal-window">
         <h3>➕ ДОБАВИТЬ ИГРУ</h3>
-        <input type="text" id="newGameName" placeholder="Название игры">
-        <input type="number" id="newGamePrice" placeholder="Цена в AMD">
-        <input type="text" id="newGameFile" placeholder="Путь к HTML-файлу (например games/my_game.html)">
-        <textarea id="newGameDesc" rows="2" placeholder="Описание игры"></textarea>
-        <input type="text" id="newGameImage" placeholder="Эмодзи или URL картинки">
-        <div style="display:flex; gap:12px; margin-top:15px;">
-            <button id="confirmAddGameBtn" class="action-btn">ДОБАВИТЬ</button>
-            <button id="cancelAddGameBtn" class="action-btn" style="background:#555;">ОТМЕНА</button>
-        </div>
+        <input type="text" id="newGameName" placeholder="Название">
+        <input type="number" id="newGamePrice" placeholder="Цена">
+        <input type="text" id="newGameFile" placeholder="Путь (games/xxx.html)">
+        <textarea id="newGameDesc" rows="2" placeholder="Описание"></textarea>
+        <input type="text" id="newGameImage" placeholder="Эмодзи">
+        <div style="display:flex; gap:12px; margin-top:15px;"><button id="confirmAddGameBtn" class="action-btn">ДОБАВИТЬ</button><button id="cancelAddGameBtn" class="action-btn" style="background:#555;">ОТМЕНА</button></div>
     </div>
 </div>
 
+<div id="toastMsg" class="toast"></div>
+
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaA66CdZKhvJtxQmr6L0DnBg3drvp_APU145zngXj6RKdaENo7Jr0w5VVkOwiLwUQh/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwiaQ4kYJuOXqhHQ2wrFN8iBkM0M3Ko65IyaKtBoqKefkkHJM5aSSF7AXae3z8G-KkU/exec";
     let currentUser = null, isAdmin = false, currentBalance = 0;
-    let shopGames = [];
-    let libraryGames = []; // ID купленных игр
+    let shopGames = [], purchasedGames = [];
+
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        toast.innerText = msg;
+        toast.style.backgroundColor = isError ? '#aa3333' : '#f7931a';
+        toast.style.color = isError ? 'white' : 'black';
+        toast.style.opacity = '1';
+        setTimeout(() => toast.style.opacity = '0', 2000);
+    }
 
     async function loadUsers() { try { const r=await fetch(SCRIPT_URL+"?action=getUsers"); const d=await r.json(); return d.success?d.users:{}; } catch(e){return {};} }
     async function addBalance(l,a){ await fetch(`${SCRIPT_URL}?action=addBalance&login=${encodeURIComponent(l)}&amount=${a}`); }
@@ -305,26 +202,21 @@
     async function createUser(l,p){ await fetch(`${SCRIPT_URL}?action=createUser&login=${encodeURIComponent(l)}&password=${encodeURIComponent(p)}&balance=0&isAdmin=false`); }
     async function refreshBalance() { if(!currentUser)return; const u=await loadUsers(); if(u[currentUser]){ currentBalance=u[currentUser].balance; document.getElementById('globalBalance').innerText=currentBalance.toFixed(2); document.getElementById('accBalance').innerText=currentBalance.toFixed(2); } }
     async function loadShopGames() { try { const res=await fetch(SCRIPT_URL+"?action=getGames"); const data=await res.json(); if(data.success) shopGames=data.games; else shopGames=[]; } catch(e){shopGames=[];} }
-    async function loadLibrary() { 
-        // Загружаем купленные игры из saves (где saveData = "purchased")
-        try { 
-            const res=await fetch(`${SCRIPT_URL}?action=getPurchasedGames&login=${encodeURIComponent(currentUser)}`); 
-            const data=await res.json(); 
-            if(data.success) libraryGames=data.games; else libraryGames=[]; 
-        } catch(e){ libraryGames=[]; }
-    }
+    async function loadLibrary() { if(!currentUser) return; try { const res=await fetch(`${SCRIPT_URL}?action=getPurchasedGames&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); purchasedGames=data.games||[]; } catch(e){ purchasedGames=[]; } }
 
     async function buyGame(gameId, price, gameName) {
-        if (currentBalance < price) { alert("❌ Недостаточно AMD!"); return; }
+        if (currentBalance < price) { showToast("❌ Недостаточно AMD!", true); return; }
+        if (purchasedGames.some(g => g.id == gameId)) { showToast(`❌ Игра "${gameName}" уже куплена!`, true); return; }
         if (confirm(`Купить "${gameName}" за ${price} AMD?`)) {
             const res = await fetch(`${SCRIPT_URL}?action=buyGame&login=${encodeURIComponent(currentUser)}&gameId=${gameId}&price=${price}`);
             const data = await res.json();
             if(data.success) {
                 await refreshBalance();
-                alert("✅ Игра куплена! Теперь она в библиотеке.");
+                await loadLibrary();
+                showToast(`✅ Игра "${gameName}" куплена!`, false);
                 renderShop();
                 renderLibrary();
-            } else { alert("❌ Ошибка при покупке"); }
+            } else { showToast("❌ Ошибка при покупке", true); }
         }
     }
     
@@ -335,13 +227,14 @@
         if(shopGames.length === 0) { container.innerHTML = '<div class="empty-library">✨ В магазине пока нет игр</div>'; return; }
         container.innerHTML = '';
         for (const game of shopGames) {
+            const isPurchased = purchasedGames.some(g => g.id == game.id);
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
                 <div class="game-emoji">${game.image || '🎮'}</div>
                 <div class="game-title">${game.name}</div>
                 <div class="game-price">💰 ${game.price} AMD</div>
-                <button class="action-btn buy-btn" data-id="${game.id}" data-price="${game.price}" data-name="${game.name}">🛒 КУПИТЬ</button>
+                ${!isPurchased ? `<button class="action-btn buy-btn" data-id="${game.id}" data-price="${game.price}" data-name="${game.name}">🛒 КУПИТЬ</button>` : `<button class="action-btn" disabled style="background:#555;">✅ УЖЕ КУПЛЕНА</button>`}
             `;
             container.appendChild(card);
         }
@@ -354,9 +247,9 @@
         const container = document.getElementById('libraryCatalog');
         if (!container) return;
         await loadLibrary();
-        if(libraryGames.length === 0) { container.innerHTML = '<div class="empty-library">📭 У вас пока нет купленных игр</div>'; return; }
+        if(purchasedGames.length === 0) { container.innerHTML = '<div class="empty-library">📭 У вас пока нет купленных игр</div>'; return; }
         container.innerHTML = '';
-        for (const game of libraryGames) {
+        for (const game of purchasedGames) {
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
@@ -371,7 +264,6 @@
         });
     }
 
-    // АДМИН: ДОБАВИТЬ ИГРУ
     document.getElementById('adminAddGameBtn')?.addEventListener('click', () => document.getElementById('addGameModal').classList.add('active'));
     document.getElementById('confirmAddGameBtn')?.addEventListener('click', async () => {
         const name = document.getElementById('newGameName').value.trim();
@@ -379,7 +271,7 @@
         const file = document.getElementById('newGameFile').value.trim();
         const desc = document.getElementById('newGameDesc').value.trim();
         const image = document.getElementById('newGameImage').value.trim() || '🎮';
-        if (!name || isNaN(price) || !file) { alert("Заполните название, цену и путь к файлу"); return; }
+        if (!name || isNaN(price) || !file) { alert("Заполните поля"); return; }
         await fetch(`${SCRIPT_URL}?action=addGame&name=${encodeURIComponent(name)}&price=${price}&file=${encodeURIComponent(file)}&description=${encodeURIComponent(desc)}&image=${encodeURIComponent(image)}`);
         alert("✅ Игра добавлена!");
         document.getElementById('addGameModal').classList.remove('active');
@@ -391,14 +283,13 @@
         document.getElementById('newGameImage').value = '';
     });
     document.getElementById('cancelAddGameBtn')?.addEventListener('click', () => document.getElementById('addGameModal').classList.remove('active'));
-
     document.getElementById('adminAddBalance')?.addEventListener('click',async()=>{ const t=document.getElementById('adminTargetUser').value.trim(), a=parseFloat(document.getElementById('adminNewBalance').value); if(!t||isNaN(a))return alert('Введите логин и сумму'); await addBalance(t,a); alert(`✅ Добавлено ${a} AMD для ${t}`); if(t===currentUser)await refreshBalance(); });
     document.getElementById('adminSetBalance')?.addEventListener('click',async()=>{ const t=document.getElementById('adminTargetUser').value.trim(), b=parseFloat(document.getElementById('adminNewBalance').value); if(!t||isNaN(b))return alert('Введите логин и баланс'); await setBalance(t,b); alert(`✅ Баланс ${t} = ${b} AMD`); if(t===currentUser)await refreshBalance(); });
 
-    async function loginUser(login,password){ const btn=document.getElementById('doLoginBtn'),spin=document.getElementById('loginSpinner'); btn.disabled=true; spin.style.display='block'; document.getElementById('authMessage').innerHTML='⏳ Проверка...'; const users=await loadUsers(); const user=users[login]; btn.disabled=false; spin.style.display='none'; if(user&&user.password===password){ currentUser=login; isAdmin=user.isAdmin===true; document.getElementById('authPanel').style.display='none'; document.getElementById('registerPanel').style.display='none'; document.getElementById('gamePanel').style.display='block'; document.getElementById('accLogin').innerText=currentUser; await refreshBalance(); if(isAdmin) document.getElementById('adminTabBtn').style.display='inline-block'; renderShop(); renderLibrary(); return true; } else { document.getElementById('authMessage').innerHTML='❌ Неверный логин или пароль'; return false; } }
+    async function loginUser(login,password){ const btn=document.getElementById('doLoginBtn'),spin=document.getElementById('loginSpinner'); btn.disabled=true; spin.style.display='block'; document.getElementById('authMessage').innerHTML='⏳ Проверка...'; const users=await loadUsers(); const user=users[login]; btn.disabled=false; spin.style.display='none'; if(user&&user.password===password){ currentUser=login; isAdmin=user.isAdmin===true; document.getElementById('authPanel').style.display='none'; document.getElementById('registerPanel').style.display='none'; document.getElementById('gamePanel').style.display='block'; document.getElementById('accLogin').innerText=currentUser; await refreshBalance(); await loadLibrary(); if(isAdmin) document.getElementById('adminTabBtn').style.display='inline-block'; renderShop(); renderLibrary(); return true; } else { document.getElementById('authMessage').innerHTML='❌ Неверный логин или пароль'; return false; } }
     async function registerUser(login,password){ const btn=document.getElementById('doRegisterBtn'),spin=document.getElementById('registerSpinner'); btn.disabled=true; spin.style.display='block'; document.getElementById('regMessage').innerHTML='⏳ Регистрация...'; const users=await loadUsers(); if(users[login]){ document.getElementById('regMessage').innerHTML='❌ Логин существует'; btn.disabled=false; spin.style.display='none'; return false; } if(!document.getElementById('agreeTerms').checked){ document.getElementById('regMessage').innerHTML='❌ Примите условия'; btn.disabled=false; spin.style.display='none'; return false; } await createUser(login,password); document.getElementById('regMessage').innerHTML='✅ Регистрация успешна!'; btn.disabled=false; spin.style.display='none'; setTimeout(()=>{ document.getElementById('registerPanel').style.display='none'; document.getElementById('authPanel').style.display='block'; },1500); return true; }
 
-    function switchTab(tabId){ document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none'); document.getElementById(`${tabId}Tab`).style.display='block'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.querySelector(`.nav-btn[data-tab="${tabId}"]`).classList.add('active'); if(tabId === 'library') renderLibrary(); }
+    function switchTab(tabId){ document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none'); document.getElementById(`${tabId}Tab`).style.display='block'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.querySelector(`.nav-btn[data-tab="${tabId}"]`).classList.add('active'); if(tabId==='library') renderLibrary(); }
     document.querySelectorAll('.nav-btn').forEach(b=>{ b.addEventListener('click',()=>{ const tab=b.dataset.tab; if(tab==='admin'&&!isAdmin)return; switchTab(tab); }); });
 
     document.getElementById('doLoginBtn').onclick=async()=>{ const l=document.getElementById('loginUsername').value.trim(), p=document.getElementById('loginPassword').value.trim(); if(!l||!p){ document.getElementById('authMessage').innerHTML='Заполните поля'; return; } await loginUser(l,p); };
