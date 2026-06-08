@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DARK ESCAPE 4.0 - Выбор сложности</title>
+    <style>
+        * { user-select: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; background: #000; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', monospace; overflow: hidden; }
+        .game-container { position: relative; }
+        canvas { border: 3px solid #f7931a; border-radius: 10px; cursor: crosshair; box-shadow: 0 0 20px rgba(247,147,26,0.3); background: #0a0a0a; display: block; }
+        
+        .menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(8px); z-index: 100; display: flex; justify-content: center; align-items: center; border-radius: 10px; }
+        .menu-panel { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid #f7931a; border-radius: 20px; padding: 30px 40px; text-align: center; min-width: 350px; }
+        .menu-title { font-size: 28px; font-weight: bold; color: #f7931a; margin-bottom: 10px; }
+        .menu-subtitle { font-size: 12px; color: #888; margin-bottom: 25px; }
+        .menu-btn { display: block; width: 100%; background: #2c3e66; border: none; color: white; padding: 12px 20px; margin: 10px 0; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .menu-btn:hover { background: #f7931a; transform: scale(1.02); }
+        
+        .difficulty-select { display: flex; gap: 10px; margin: 15px 0; justify-content: center; }
+        .difficulty-btn { background: #2c3e66; border: none; color: white; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .difficulty-btn:hover { background: #f7931a; }
+        .difficulty-btn.selected { background: #f7931a; box-shadow: 0 0 10px #f7931a; }
+        
+        .info-panel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.85); padding: 8px 15px; border-radius: 10px; color: white; font-size: 12px; z-index: 10; display: flex; gap: 15px; flex-wrap: wrap; backdrop-filter: blur(5px); pointer-events: none; }
+        .info-item { background: rgba(247,147,26,0.25); padding: 3px 10px; border-radius: 15px; border-left: 2px solid #f7931a; }
+        .info-item span { color: #f7931a; font-weight: bold; }
+        
+        .inventory-panel { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.85); border-radius: 8px; padding: 10px; z-index: 10; min-width: 220px; backdrop-filter: blur(5px); font-size: 11px; pointer-events: auto; }
+        .inventory-title { color: #f7931a; text-align: center; margin-bottom: 8px; font-size: 12px; }
+        .inv-slot { background: rgba(0,0,0,0.5); border: 1px solid #f7931a; border-radius: 5px; padding: 4px 8px; margin: 3px 0; display: flex; justify-content: space-between; }
+        
+        .game-button { position: absolute; bottom: 10px; left: 10px; background: #f7931a; border: none; color: white; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; z-index: 10; }
+        .game-button:hover { background: #ffaa44; transform: scale(1.02); }
+        
+        .interact-hint { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #ffd700; padding: 5px 15px; border-radius: 20px; font-size: 12px; z-index: 15; pointer-events: none; white-space: nowrap; border-left: 3px solid #f7931a; }
+        .minimap { position: absolute; top: 80px; right: 10px; width: 140px; height: 140px; background: rgba(0,0,0,0.7); border: 2px solid #f7931a; border-radius: 8px; z-index: 15; pointer-events: none; }
+        
+        .victory-panel, .game-over-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #ffd700; border-radius: 20px; padding: 30px 50px; text-align: center; z-index: 200; min-width: 350px; }
+        .victory-title { font-size: 36px; color: #ffd700; margin-bottom: 20px; font-weight: bold; }
+        .game-over-title { font-size: 32px; color: #ff4444; margin-bottom: 15px; font-weight: bold; }
+        .victory-btn, .game-over-btn { background: #f7931a; border: none; color: white; padding: 10px 25px; margin: 10px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .victory-btn:hover, .game-over-btn:hover { background: #ffaa44; }
+        .hidden { display: none; }
+        .screamer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 300; display: flex; justify-content: center; align-items: center; flex-direction: column; animation: screamerFlash 0.3s ease-out; pointer-events: none; }
+        @keyframes screamerFlash { 0% { background: rgba(255,255,255,0.9); } 50% { background: rgba(0,0,0,0.9); } 100% { background: rgba(0,0,0,0); } }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <canvas id="gameCanvas" width="1300" height="750"></canvas>
+    <canvas id="minimapCanvas" class="minimap" width="140" height="140"></canvas>
+    
+    <div id="menuOverlay" class="menu-overlay">
+        <div id="mainMenuPanel" class="menu-panel">
+            <div class="menu-title">🔦 DARK ESCAPE 4.0</div>
+            <div class="menu-subtitle">Выберите сложность</div>
+            <div class="difficulty-select">
+                <button class="difficulty-btn" data-diff="easy">🟢 ЛЕГКО</button>
+                <button class="difficulty-btn" data-diff="normal">🟡 НОРМАЛЬНО</button>
+                <button class="difficulty-btn" data-diff="hard">🟠 СЛОЖНО</button>
+                <button class="difficulty-btn" data-diff="impossible">🔴 ИМБА</button>
+            </div>
+            <button class="menu-btn" id="startGameBtn">▶️ НАЧАТЬ ИГРУ</button>
+            <button class="menu-btn" id="continueGameBtn">📀 ПРОДОЛЖИТЬ</button>
+            <button class="menu-btn" id="helpMenuBtn">❓ ПОМОЩЬ</button>
+        </div>
+        <div id="helpPanel" class="menu-panel hidden">
+            <div class="menu-title">❓ УПРАВЛЕНИЕ</div>
+            <div class="menu-subtitle">WASD / ЦФЫВ - движение</div>
+            <div class="menu-subtitle">Мышь - направление фонарика</div>
+            <div class="menu-subtitle">F - фонарик</div>
+            <div class="menu-subtitle">E - взять / открыть</div>
+            <div class="menu-subtitle">R - батарейка</div>
+            <div class="menu-subtitle">H - аптечка</div>
+            <div class="menu-subtitle">Space - спрятаться</div>
+            <div class="menu-subtitle">🔋 Батареи расходуются быстрее на высокой сложности</div>
+            <button class="menu-btn" id="backToMainBtn">◀️ НАЗАД</button>
+        </div>
+    </div>
+    
+    <div id="gameUI" class="hidden">
+        <div class="info-panel">
+            <div class="info-item">🔋 <span id="battery">0</span>%</div>
+            <div class="info-item">🔦 <span id="flashlight">НЕТ</span></div>
+            <div class="info-item">🔧 <span id="crowbar">❌</span></div>
+            <div class="info-item">🔑 <span id="key">❌</span></div>
+            <div class="info-item">💳 <span id="keycard">❌</span></div>
+            <div class="info-item">❤️ <span id="hp">100</span></div>
+            <div class="info-item">⚡ <span id="difficultyText">НОРМ</span></div>
+        </div>
+        <div class="inventory-panel" id="inventoryPanel">
+            <div class="inventory-title">🎒 ИНВЕНТАРЬ</div>
+            <div id="inventoryList"></div>
+        </div>
+        <button id="menuBtn" class="game-button">📋 МЕНЮ</button>
+        <div id="interactHint" class="interact-hint hidden">📦 Нажмите E</div>
+    </div>
+    
+    <div id="victoryPanel" class="victory-panel hidden">
+        <div class="victory-title">🏆 ПОБЕДА! 🏆</div>
+        <div class="victory-stats">✨ ВЫ СБЕЖАЛИ ИЗ ТЕМНИЦЫ ✨</div>
+        <button class="victory-btn" id="victoryRestartBtn">🔄 НОВАЯ ИГРА</button>
+        <button class="victory-btn" id="victoryMenuBtn">📋 ГЛАВНОЕ МЕНЮ</button>
+    </div>
+    
+    <div id="gameOverPanel" class="game-over-panel hidden">
+        <div class="game-over-title">💀 ВАС НАШЛИ...</div>
+        <button class="game-over-btn" id="gameOverRestartBtn">🔄 НАЧАТЬ ЗАНОВО</button>
+        <button class="game-over-btn" id="gameOverMenuBtn">📋 ГЛАВНОЕ МЕНЮ</button>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
+    const GAME_ID = "dark_escape_v4";
+    
+    let currentUser = null;
+    let gameStarted = false;
+    let gameActive = true;
+    let isPaused = false;
+    let frame = 0;
+    let difficulty = "normal"; // easy, normal, hard, impossible
+    let difficultySettings = {
+        easy: { drainRate: 0.35, monsterSpeed: 1.8, monsterDamage: 15, batteryDrainMult: 1, playerSpeed: 4.5, itemCountMult: 1.5 },
+        normal: { drainRate: 0.5, monsterSpeed: 2.2, monsterDamage: 25, batteryDrainMult: 1, playerSpeed: 4, itemCountMult: 1 },
+        hard: { drainRate: 0.7, monsterSpeed: 2.6, monsterDamage: 35, batteryDrainMult: 1.3, playerSpeed: 3.5, itemCountMult: 0.7 },
+        impossible: { drainRate: 1.0, monsterSpeed: 3.0, monsterDamage: 50, batteryDrainMult: 1.6, playerSpeed: 3, itemCountMult: 0.4 }
+    };
+    
+    let player = { x: 0, y: 0, radius: 12, speed: 4, hp: 100, invincibleTimer: 0, hiding: false };
+    let flashlight = { owned: false, enabled: false, battery: 0, drainRate: 0.5 };
+    let inventory = { crowbar: false, key: false, keycard: false, batteries: 0, medkits: 2 };
+    
+    let walls = [], doors = [], items = [], hidingSpots = [];
+    let monster = null, exitDoor = null;
+    let worldWidth = 65, worldHeight = 48, tileSize = 32;
+    let camera = { x: 0, y: 0 };
+    let map = [];
+    
+    let monsterChasing = false;
+    let monsterLostTimer = 0;
+    let hintTimer = 0;
+    let screamerTimer = 0;
+    
+    let keysPressed = { w: false, s: false, a: false, d: false, ц: false, ф: false, ы: false, в: false };
+    let mouseX = 0, mouseY = 0, mouseAngle = 0;
+    
+    let canvas = document.getElementById('gameCanvas');
+    let ctx = canvas.getContext('2d');
+    let minimapCanvas = document.getElementById('minimapCanvas');
+    let minimapCtx = minimapCanvas.getContext('2d');
+    
+    let audioCtx = null, isAudioInit = false, ambientInterval = null;
+    
+    function initAudio() {
+        if (isAudioInit) return;
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); isAudioInit = true; } catch(e) {}
+    }
+    
+    function playSound(type, volume = 0.3) {
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            let freq = type === 'scream' ? 60 : 400, dur = type === 'scream' ? 0.8 : 0.2;
+            osc.frequency.value = freq;
+            osc.type = type === 'scream' ? 'sawtooth' : 'sine';
+            gain.gain.value = volume;
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+            osc.stop(audioCtx.currentTime + dur);
+        } catch(e) {}
+    }
+    
+    function startAmbient() {
+        if (ambientInterval) clearInterval(ambientInterval);
+        ambientInterval = setInterval(() => {
+            if (gameStarted && gameActive && !isPaused && audioCtx && audioCtx.state === 'running') {
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.frequency.value = 120 + Math.random() * 20;
+                    osc.type = 'sine';
+                    gain.gain.value = 0.03;
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.5);
+                    osc.stop(audioCtx.currentTime + 2.5);
+                } catch(e) {}
+            }
+        }, 4000);
+    }
+    
+    function showScreamer() {
+        const div = document.createElement('div');
+        div.className = 'screamer';
+        let images = ['👁️👻👁️', '💀💀💀', '👹👹👹', '😱😱😱'];
+        let randomImg = images[Math.floor(Math.random() * images.length)];
+        div.innerHTML = `<div style="font-size:100px; animation: shake 0.1s infinite;">${randomImg}</div><div style="color:#ff0000; font-size:28px; margin-top:20px;">ОН РЯДОМ!</div>`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 700);
+        playSound('scream', 0.8);
+        
+        if (difficulty === 'hard' || difficulty === 'impossible') {
+            player.hp = Math.max(0, player.hp - 5);
+            updateUI();
+        }
+    }
+    
+    function getCurrentUser() {
+        try { if (window.parent && window.parent.currentUser) return window.parent.currentUser; } catch(e) {}
+        return localStorage.getItem('beam_user') || "guest";
+    }
+    currentUser = getCurrentUser();
+    
+    function showToast(msg, isError = false) {
+        try { if (window.parent && window.parent.showToast) { window.parent.showToast(msg, isError); return; } } catch(e) {}
+        const toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:' + (isError ? '#ff4444' : '#4caf50') + ';color:white;padding:6px 12px;border-radius:20px;z-index:9999;font-family:monospace;font-size:12px;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+    
+    function updateUI() {
+        document.getElementById('battery').innerHTML = flashlight.owned ? Math.floor(flashlight.battery) : 0;
+        document.getElementById('flashlight').innerHTML = !flashlight.owned ? "НЕТ" : (flashlight.enabled ? "ВКЛ" : "ВЫКЛ");
+        document.getElementById('crowbar').innerHTML = inventory.crowbar ? "✅" : "❌";
+        document.getElementById('key').innerHTML = inventory.key ? "✅" : "❌";
+        document.getElementById('keycard').innerHTML = inventory.keycard ? "✅" : "❌";
+        document.getElementById('hp').innerHTML = player.hp;
+        let diffText = difficulty === 'easy' ? 'ЛЕГКО' : (difficulty === 'normal' ? 'НОРМ' : (difficulty === 'hard' ? 'СЛОЖНО' : 'ИМБА'));
+        document.getElementById('difficultyText').innerHTML = diffText;
+        
+        document.getElementById('inventoryList').innerHTML = `
+            <div class="inv-slot">🔋 Батарейки: ${inventory.batteries}</div>
+            <div class="inv-slot">🔦 Фонарик: ${flashlight.owned ? "✅" : "❌"}</div>
+            <div class="inv-slot">💊 Аптечки: ${inventory.medkits}</div>
+            <div class="inv-slot">🔧 Лом: ${inventory.crowbar ? "✅" : "❌"}</div>
+            <div class="inv-slot">🔑 Ключ: ${inventory.key ? "✅" : "❌"}</div>
+            <div class="inv-slot">💳 Карта: ${inventory.keycard ? "✅" : "❌"}</div>
+        `;
+    }
+    
+    // РАНДОМНАЯ ГЕНЕРАЦИЯ КАРТЫ
+    function generateRandomMap() {
+        for (let y = 0; y < worldHeight; y++) {
+            map[y] = [];
+            for (let x = 0; x < worldWidth; x++) map[y][x] = 1;
+        }
+        
+        // Широкие коридоры
+        let corridorY = [7, 20, 33];
+        for (let cy of corridorY) {
+            for (let x = 5; x < worldWidth-5; x++) {
+                for (let y = cy-1; y <= cy+1; y++) map[y][x] = 0;
+            }
+        }
+        
+        let corridorX = [12, 28, 44, 58];
+        for (let cx of corridorX) {
+            for (let y = 5; y < worldHeight-5; y++) {
+                for (let x = cx-1; x <= cx+1; x++) map[y][x] = 0;
+            }
+        }
+        
+        // Комнаты (рандомное количество)
+        let roomCount = 6 + Math.floor(Math.random() * 4);
+        let rooms = [];
+        for (let i = 0; i < roomCount; i++) {
+            let w = 5 + Math.floor(Math.random() * 5);
+            let h = 4 + Math.floor(Math.random() * 4);
+            let x = 5 + Math.floor(Math.random() * (worldWidth - w - 10));
+            let y = 5 + Math.floor(Math.random() * (worldHeight - h - 10));
+            rooms.push({ x, y, w, h });
+            for (let ry = y; ry < y + h; ry++) {
+                for (let rx = x; rx < x + w; rx++) {
+                    if (rx > 0 && rx < worldWidth-1 && ry > 0 && ry < worldHeight-1) map[ry][rx] = 0;
+                }
+            }
+        }
+        
+        // Соединения между комнатами
+        for (let i = 0; i < rooms.length-1; i++) {
+            let r1 = rooms[i], r2 = rooms[i+1];
+            let cx1 = Math.floor(r1.x + r1.w/2);
+            let cy1 = Math.floor(r1.y + r1.h/2);
+            let cx2 = Math.floor(r2.x + r2.w/2);
+            let cy2 = Math.floor(r2.y + r2.h/2);
+            for (let x = Math.min(cx1, cx2); x <= Math.max(cx1, cx2); x++) {
+                if (map[cy1][x] === 1) map[cy1][x] = 0;
+                if (cy1+1 < worldHeight && map[cy1+1][x] === 1) map[cy1+1][x] = 0;
+                if (cy1-1 >= 0 && map[cy1-1][x] === 1) map[cy1-1][x] = 0;
+            }
+            for (let y = Math.min(cy1, cy2); y <= Math.max(cy1, cy2); y++) {
+                if (map[y][cx2] === 1) map[y][cx2] = 0;
+                if (cx2+1 < worldWidth && map[y][cx2+1] === 1) map[y][cx2+1] = 0;
+                if (cx2-1 >= 0 && map[y][cx2-1] === 1) map[y][cx2-1] = 0;
+            }
+        }
+        
+        // Дополнительные проходы
+        for (let i = 0; i < 150; i++) {
+            let x = 5 + Math.floor(Math.random() * (worldWidth - 10));
+            let y = 5 + Math.floor(Math.random() * (worldHeight - 10));
+            if (map[y][x] === 1) {
+                let cnt = 0;
+                if (y>0 && map[y-1][x]===0) cnt++;
+                if (y<worldHeight-1 && map[y+1][x]===0) cnt++;
+                if (x>0 && map[y][x-1]===0) cnt++;
+                if (x<worldWidth-1 && map[y][x+1]===0) cnt++;
+                if (cnt >= 2) map[y][x] = 0;
+            }
+        }
+        
+        return rooms;
+    }
+    
+    function generateWorld() {
+        let rooms = generateRandomMap();
+        walls = []; doors = []; items = []; hidingSpots = [];
+        
+        for (let y = 0; y < worldHeight; y++) {
+            for (let x = 0; x < worldWidth; x++) {
+                if (map[y][x] === 1) walls.push({ x: x * tileSize, y: y * tileSize });
+            }
+        }
+        
+        let startRoom = rooms[0];
+        player.x = (startRoom.x + startRoom.w/2) * tileSize;
+        player.y = (startRoom.y + startRoom.h/2) * tileSize;
+        player.hp = 100;
+        player.hiding = false;
+        player.invincibleTimer = 0;
+        player.speed = difficultySettings[difficulty].playerSpeed;
+        
+        flashlight.owned = false;
+        flashlight.enabled = false;
+        flashlight.battery = 0;
+        flashlight.drainRate = difficultySettings[difficulty].drainRate;
+        inventory = { crowbar: false, key: false, keycard: false, batteries: 0, medkits: 2 };
+        
+        // ТОЛЬКО В КОМНАТАХ (не в стенах)
+        let availableCells = [];
+        for (let r of rooms) {
+            for (let y = r.y+1; y < r.y + r.h-1; y++) {
+                for (let x = r.x+1; x < r.x + r.w-1; x++) {
+                    if (map[y][x] === 0) {
+                        availableCells.push({ x: x * tileSize + tileSize/2, y: y * tileSize + tileSize/2 });
+                    }
+                }
+            }
+        }
+        
+        for (let i = availableCells.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableCells[i], availableCells[j]] = [availableCells[j], availableCells[i]];
+        }
+        
+        let idx = 0;
+        let itemCountMult = difficultySettings[difficulty].itemCountMult;
+        
+        // Обязательные предметы
+        let essentialItems = [
+            { type: 'flashlight' }, { type: 'crowbar' }, { type: 'key' }, { type: 'keycard' }
+        ];
+        for (let it of essentialItems) {
+            if (idx < availableCells.length) {
+                items.push(new Item(availableCells[idx].x, availableCells[idx].y, it.type));
+                idx++;
+            }
+        }
+        
+        // Батарейки (меньше на высокой сложности)
+        let batteryCount = Math.floor(8 * itemCountMult);
+        for (let i = 0; i < batteryCount && idx < availableCells.length; i++) {
+            items.push(new Item(availableCells[idx].x, availableCells[idx].y, 'battery'));
+            idx++;
+        }
+        
+        // Аптечки
+        let medkitCount = Math.floor(3 * itemCountMult);
+        for (let i = 0; i < medkitCount && idx < availableCells.length; i++) {
+            items.push(new Item(availableCells[idx].x, availableCells[idx].y, 'medkit'));
+            idx++;
+        }
+        
+        // Улучшение фонарика (редко)
+        if (Math.random() < 0.5 && idx < availableCells.length) {
+            items.push(new Item(availableCells[idx].x, availableCells[idx].y, 'flashlightUpgrade'));
+            idx++;
+        }
+        
+        // Двери
+        doors.push(new Door((startRoom.x + startRoom.w) * tileSize, (startRoom.y + startRoom.h/2) * tileSize, 'crowbar', true));
+        
+        let lastRoom = rooms[rooms.length-1];
+        exitDoor = new ExitDoor((lastRoom.x + lastRoom.w/2) * tileSize, (lastRoom.y + lastRoom.h/2) * tileSize);
+        
+        // Шкафы
+        let closetCount = 5 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < closetCount && idx < availableCells.length; i++) {
+            let closetTypes = ['battery', 'medkit', null];
+            let type = Math.random() < 0.4 ? closetTypes[Math.floor(Math.random() * 2)] : null;
+            hidingSpots.push(new HidingSpot(availableCells[idx].x, availableCells[idx].y, type));
+            idx++;
+        }
+        
+        monster = new Monster((worldWidth-5)*tileSize, (worldHeight-5)*tileSize);
+        monsterChasing = false;
+        updateUI();
+    }
+    
+    class Door {
+        constructor(x, y, required, horizontal) {
+            this.x = x; this.y = y; this.required = required; this.locked = true; this.horizontal = true; this.radius = 22;
+        }
+        draw() {
+            let sx = this.x - camera.x, sy = this.y - camera.y;
+            if (sx < -60 || sx > canvas.width+60) return;
+            ctx.fillStyle = this.locked ? '#8B6914' : '#2a6a2a';
+            ctx.fillRect(sx-25, sy-5, 50, 10);
+            ctx.fillStyle = this.locked ? '#DAA520' : '#4a8a4a';
+            ctx.fillRect(sx-20, sy-7, 40, 5); ctx.fillRect(sx-20, sy+2, 40, 5);
+            if (this.locked) { ctx.fillStyle = '#ffd700'; ctx.font = 'bold 14px monospace'; ctx.fillText('🔒', sx-6, sy-10); }
+        }
+        tryOpen() {
+            if (!this.locked) return true;
+            let has = false;
+            if (this.required === 'crowbar' && inventory.crowbar) has = true;
+            else if (this.required === 'key' && inventory.key) has = true;
+            else if (this.required === 'keycard' && inventory.keycard) has = true;
+            if (has) { this.locked = false; playSound('door', 0.4); showToast(`🚪 Дверь открыта!`); return true; }
+            else { playSound('door', 0.3); showToast(`🔒 Нужен ${this.required === 'crowbar' ? 'лом' : (this.required === 'key' ? 'ключ' : 'ключ-карта')}`, true); return false; }
+        }
+    }
+    
+    class ExitDoor {
+        constructor(x, y) { this.x = x; this.y = y; this.radius = 28; }
+        draw() {
+            let sx = this.x - camera.x, sy = this.y - camera.y;
+            if (sx < -60 || sx > canvas.width+60) return;
+            ctx.fillStyle = '#44aaff'; ctx.fillRect(sx-30, sy-8, 60, 16);
+            ctx.fillStyle = '#88ccff'; ctx.fillRect(sx-25, sy-12, 50, 8);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 20px monospace'; ctx.fillText('🚪', sx-10, sy+8);
+        }
+        tryExit() {
+            if (inventory.crowbar && inventory.key && inventory.keycard) { showVictory(); return true; }
+            else { let missing = []; if (!inventory.crowbar) missing.push("лом"); if (!inventory.key) missing.push("ключ"); if (!inventory.keycard) missing.push("ключ-карту"); showToast(`🔒 Нужны: ${missing.join(", ")}!`, true); return false; }
+        }
+    }
+    
+    class HidingSpot {
+        constructor(x, y, itemType = null) { this.x = x; this.y = y; this.radius = 18; this.itemType = itemType; this.looted = false; }
+        draw() {
+            let sx = this.x - camera.x, sy = this.y - camera.y;
+            if (sx < -60 || sx > canvas.width+60) return;
+            ctx.fillStyle = '#8B6914'; ctx.fillRect(sx-12, sy-8, 24, 30);
+            ctx.fillStyle = '#DAA520'; ctx.fillRect(sx-10, sy-6, 20, 26);
+            ctx.fillStyle = '#f7931a'; ctx.font = 'bold 14px monospace'; ctx.fillText('🚪', sx-6, sy+5);
+            if (this.itemType && !this.looted) { let emoji = this.itemType === 'battery' ? '🔋' : (this.itemType === 'medkit' ? '💊' : ''); if(emoji) { ctx.fillStyle = '#ffd700'; ctx.font = '20px monospace'; ctx.fillText(emoji, sx-8, sy-12); } }
+        }
+        interact() {
+            if (this.itemType && !this.looted) {
+                this.looted = true;
+                if (this.itemType === 'battery') { inventory.batteries++; showToast("🔋 Найдена батарейка!"); }
+                else if (this.itemType === 'medkit') { inventory.medkits++; showToast("💊 Найдена аптечка!"); }
+                playSound('pickup', 0.4); updateUI(); return true;
+            }
+            if (player.hiding) { player.hiding = false; showToast("🚪 Вы вышли из шкафа"); return true; }
+            else { player.hiding = true; showToast("🚪 Вы спрятались в шкаф!"); return true; }
+        }
+    }
+    
+    class Monster {
+        constructor(x, y) {
+            this.x = x; this.y = y; this.radius = 22;
+            this.speed = difficultySettings[difficulty].monsterSpeed;
+            this.damage = difficultySettings[difficulty].monsterDamage;
+            this.targetX = x; this.targetY = y;
+        }
+        update() {
+            if (player.hiding) return;
+            let dx = player.x - this.x, dy = player.y - this.y, dist = Math.hypot(dx, dy);
+            let see = false;
+            if (flashlight.owned && flashlight.enabled) {
+                let ang = Math.atan2(dy, dx);
+                let diff = Math.abs(mouseAngle - ang);
+                if (diff > Math.PI) diff = Math.PI*2 - diff;
+                if (diff < 0.5 && dist < 280) see = true;
+            }
+            if (see || monsterChasing) {
+                if (!monsterChasing && see) { monsterChasing = true; playSound('door', 0.5); showToast("👁️ МОНСТР ЗАМЕТИЛ ВАС!", true); }
+                monsterChasing = true; monsterLostTimer = 0;
+                if (dist > 0.5) { let move = Math.min(this.speed, dist); this.x += (dx / dist) * move; this.y += (dy / dist) * move; }
+                if (dist < this.radius + player.radius + 5) {
+                    if (player.invincibleTimer <= 0) {
+                        player.hp = Math.max(0, player.hp - this.damage);
+                        player.invincibleTimer = 40;
+                        updateUI();
+                        if (player.hp <= 0) { gameActive = false; showScreamer(); document.getElementById('gameOverPanel').classList.remove('hidden'); document.getElementById('gameUI').classList.add('hidden'); gameStarted = false; }
+                    }
+                    let ang = Math.random() * Math.PI * 2; this.x += Math.cos(ang) * 120; this.y += Math.sin(ang) * 120;
+                    this.x = Math.min(Math.max(this.x, 80), worldWidth*tileSize-80);
+                    this.y = Math.min(Math.max(this.y, 80), worldHeight*tileSize-80);
+                }
+            } else {
+                let dtx = this.targetX - this.x, dty = this.targetY - this.y, dlen = Math.hypot(dtx, dty);
+                if (dlen < 30 || Math.random() < 0.01) { let ang = Math.random() * Math.PI * 2; let rad = 150 + Math.random() * 200; this.targetX = Math.min(Math.max(this.x + Math.cos(ang)*rad, 150), worldWidth*tileSize-150); this.targetY = Math.min(Math.max(this.y + Math.sin(ang)*rad, 150), worldHeight*tileSize-150); }
+                if (dlen > 0.1) { let move = Math.min(1.2, dlen); this.x += (dtx / dlen) * move; this.y += (dty / dlen) * move; }
+            }
+            if (monsterChasing && dist > 550) { monsterLostTimer++; if (monsterLostTimer > 80) { monsterChasing = false; showToast("👻 Монстр потерял вас"); } } else { monsterLostTimer = 0; }
+        }
+        draw() {
+            let sx = this.x - camera.x, sy = this.y - camera.y;
+            if (sx < -100 || sx > canvas.width+100) return;
+            ctx.beginPath(); ctx.ellipse(sx, sy, this.radius, this.radius+6, 0, 0, Math.PI*2);
+            ctx.fillStyle = '#220022'; ctx.fill();
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath(); ctx.arc(sx-9, sy-6, 5, 0, Math.PI*2); ctx.arc(sx+9, sy-6, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(sx-8, sy-7, 2.5, 0, Math.PI*2); ctx.arc(sx+10, sy-7, 2.5, 0, Math.PI*2); ctx.fill();
+            if (monsterChasing) { ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.moveTo(sx-18, sy+12); ctx.lineTo(sx, sy+28); ctx.lineTo(sx+18, sy+12); ctx.fill(); }
+        }
+    }
+    
+    class Item {
+        constructor(x, y, type) { this.x = x; this.y = y; this.type = type; this.radius = 14; this.collected = false; }
+        draw() {
+            if (this.collected) return;
+            let sx = this.x - camera.x, sy = this.y - camera.y;
+            if (sx < -50 || sx > canvas.width+50) return;
+            let emoji = this.type === 'flashlight' ? '🔦' : (this.type === 'crowbar' ? '🔧' : (this.type === 'key' ? '🔑' : (this.type === 'keycard' ? '💳' : (this.type === 'battery' ? '🔋' : (this.type === 'medkit' ? '💊' : '✨')))));
+            ctx.font = '24px monospace'; ctx.fillText(emoji, sx-10, sy+8);
+            ctx.font = '10px monospace'; ctx.fillStyle = '#ffd700';
+            let name = this.type === 'flashlight' ? 'Фонарик' : (this.type === 'crowbar' ? 'Лом' : (this.type === 'key' ? 'Ключ' : (this.type === 'keycard' ? 'Карта' : (this.type === 'battery' ? 'Батарейка' : (this.type === 'medkit' ? 'Аптечка' : 'Улучшение')))));
+            ctx.fillText(name, sx-18, sy+22);
+            if (this.type === 'flashlight' && !flashlight.owned) { ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,215,0,0.2)'; ctx.fill(); }
+        }
+        collect() {
+            this.collected = true;
+            if (this.type === 'flashlight') { flashlight.owned = true; flashlight.enabled = true; flashlight.battery = 100; showToast("🔦 Фонарик найден! Нажмите F"); }
+            else if (this.type === 'crowbar') { inventory.crowbar = true; showToast("🔧 Найден лом!"); }
+            else if (this.type === 'key') { inventory.key = true; showToast("🔑 Найден ключ!"); }
+            else if (this.type === 'keycard') { inventory.keycard = true; showToast("💳 Найдена ключ-карта!"); }
+            else if (this.type === 'battery') { inventory.batteries++; showToast("🔋 Найдена батарейка! Нажмите R"); }
+            else if (this.type === 'medkit') { inventory.medkits++; showToast("💊 Найдена аптечка! Нажмите H"); }
+            else if (this.type === 'flashlightUpgrade') { flashlight.drainRate *= 0.8; showToast("✨ Фонарик улучшен! Батареи расходуются медленнее"); }
+            playSound('pickup', 0.4); updateUI(); return true;
+        }
+    }
+    
+    function checkWallCollision(x, y, r) {
+        let ix = Math.floor(x / tileSize), iy = Math.floor(y / tileSize);
+        if (ix < 0 || ix >= worldWidth || iy < 0 || iy >= worldHeight) return true;
+        return map[iy][ix] === 1;
+    }
+    
+    function showVictory() { document.getElementById('victoryPanel').classList.remove('hidden'); document.getElementById('gameUI').classList.add('hidden'); gameStarted = false; }
+    function restartGame() { generateWorld(); updateUI(); startGame(); }
+    
+    function updateFlashlight() {
+        if (!flashlight.owned || !flashlight.enabled) return;
+        let drainMult = difficultySettings[difficulty].batteryDrainMult;
+        flashlight.battery -= (flashlight.drainRate * drainMult) / 60;
+        if (flashlight.battery <= 0) { flashlight.battery = 0; flashlight.enabled = false; showToast("🔋 Батарейка разрядилась!", true); }
+        updateUI();
+    }
+    
+    function useMedkit() {
+        if (inventory.medkits > 0 && player.hp < 100) { inventory.medkits--; player.hp = Math.min(100, player.hp + 40); playSound('pickup', 0.3); showToast(`💊 +40 HP`); updateUI(); }
+        else if (inventory.medkits <= 0) showToast("❌ Нет аптечек!", true);
+        else showToast("❤️ Полное здоровье!", true);
+    }
+    
+    function useBattery() {
+        if (!flashlight.owned) { showToast("❌ Сначала найдите фонарик!", true); return; }
+        if (inventory.batteries > 0 && flashlight.battery < 100) { inventory.batteries--; flashlight.battery = Math.min(100, flashlight.battery + 50); playSound('battery', 0.4); showToast(`🔋 +50% заряда`); updateUI(); }
+        else if (inventory.batteries > 0 && flashlight.battery >= 100) showToast("🔋 Батарейка полная!", true);
+        else showToast("❌ Нет батареек!", true);
+    }
+    
+    function toggleFlashlight() { if (!flashlight.owned) { showToast("❌ Сначала найдите фонарик!", true); return; } flashlight.enabled = !flashlight.enabled; playSound('pickup', 0.15); updateUI(); }
+    
+    function interact() {
+        if (player.hiding) return;
+        for (let d of doors) if (Math.hypot(player.x-d.x, player.y-d.y) < player.radius + d.radius) { d.tryOpen(); return; }
+        if (exitDoor && Math.hypot(player.x-exitDoor.x, player.y-exitDoor.y) < player.radius + exitDoor.radius) { exitDoor.tryExit(); return; }
+        for (let i of items) if (!i.collected && Math.hypot(player.x-i.x, player.y-i.y) < player.radius + i.radius) { i.collect(); return; }
+        for (let h of hidingSpots) if (Math.hypot(player.x-h.x, player.y-h.y) < player.radius + h.radius + 10) { h.interact(); return; }
+    }
+    
+    function drawMinimap() {
+        minimapCtx.fillStyle = '#0a0a0a'; minimapCtx.fillRect(0, 0, 140, 140);
+        let cellW = 140 / worldWidth, cellH = 140 / worldHeight;
+        let startX = Math.max(0, Math.floor(camera.x / tileSize) - 8);
+        let endX = Math.min(worldWidth, startX + 20);
+        let startY = Math.max(0, Math.floor(camera.y / tileSize) - 8);
+        let endY = Math.min(worldHeight, startY + 20);
+        for (let y = startY; y < endY; y++) {
+            for (let x = startX; x < endX; x++) {
+                let sx = (x - startX) * cellW, sy = (y - startY) * cellH;
+                if (map[y][x] === 1) { minimapCtx.fillStyle = '#3a3a4a'; minimapCtx.fillRect(sx, sy, cellW, cellH); }
+                else { minimapCtx.fillStyle = '#2a2a3a'; minimapCtx.fillRect(sx, sy, cellW, cellH); }
+            }
+        }
+        let px = Math.floor(player.x / tileSize), py = Math.floor(player.y / tileSize);
+        if (px >= startX && px < endX && py >= startY && py < endY) {
+            minimapCtx.fillStyle = '#f7931a';
+            minimapCtx.beginPath();
+            minimapCtx.arc((px - startX) * cellW + cellW/2, (py - startY) * cellH + cellH/2, 3, 0, Math.PI*2);
+            minimapCtx.fill();
+        }
+    }
+    
+    function update() {
+        if (!gameStarted || !gameActive || isPaused) return;
+        if (player.invincibleTimer > 0) player.invincibleTimer--;
+        if (flashlight.owned && flashlight.enabled) updateFlashlight();
+        
+        let mx = 0, my = 0;
+        if (keysPressed.w || keysPressed.ц) my -= 1;
+        if (keysPressed.s || keysPressed.ы) my += 1;
+        if (keysPressed.a || keysPressed.ф) mx -= 1;
+        if (keysPressed.d || keysPressed.в) mx += 1;
+        if (mx !== 0 || my !== 0) { let len = Math.hypot(mx, my); mx /= len; my /= len; }
+        
+        if (!player.hiding) {
+            let nx = player.x + mx * player.speed, ny = player.y + my * player.speed;
+            if (!checkWallCollision(nx, player.y, player.radius)) player.x = nx;
+            if (!checkWallCollision(player.x, ny, player.radius)) player.y = ny;
+        }
+        
+        camera.x = player.x - canvas.width/2; camera.y = player.y - canvas.height/2;
+        camera.x = Math.min(Math.max(camera.x, 0), worldWidth*tileSize - canvas.width);
+        camera.y = Math.min(Math.max(camera.y, 0), worldHeight*tileSize - canvas.height);
+        
+        let rect = canvas.getBoundingClientRect();
+        let scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+        let cx = mouseX, cy = mouseY;
+        mouseAngle = Math.atan2(cy - (player.y - camera.y), cx - (player.x - camera.x));
+        
+        if (monster) monster.update();
+        
+        let near = false;
+        for (let d of doors) if (Math.hypot(player.x-d.x, player.y-d.y) < 60) near = true;
+        if (exitDoor && Math.hypot(player.x-exitDoor.x, player.y-exitDoor.y) < 60) near = true;
+        for (let i of items) if (!i.collected && Math.hypot(player.x-i.x, player.y-i.y) < 50) near = true;
+        for (let h of hidingSpots) if (Math.hypot(player.x-h.x, player.y-h.y) < 55) near = true;
+        
+        if (near) { document.getElementById('interactHint').classList.remove('hidden'); hintTimer = 30; }
+        else if (hintTimer > 0) { hintTimer--; if (hintTimer <= 0) document.getElementById('interactHint').classList.add('hidden'); }
+        else document.getElementById('interactHint').classList.add('hidden');
+        
+        drawMinimap();
+        frame++;
+    }
+    
+    function applyLighting() {
+        if (!flashlight.owned || !flashlight.enabled || player.hiding) { ctx.fillStyle = 'rgba(0,0,0,0.93)'; ctx.fillRect(0,0,canvas.width,canvas.height); return; }
+        let lx = player.x - camera.x, ly = player.y - camera.y;
+        let dx = Math.cos(mouseAngle), dy = Math.sin(mouseAngle);
+        let grad = ctx.createRadialGradient(lx+dx*60, ly+dy*60, 30, lx+dx*120, ly+dy*120, 340);
+        grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.3, 'rgba(0,0,0,0.2)');
+        grad.addColorStop(0.6, 'rgba(0,0,0,0.6)'); grad.addColorStop(1, 'rgba(0,0,0,0.95)');
+        ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.beginPath(); ctx.moveTo(lx+dx*20, ly+dy*20);
+        let left = mouseAngle - 0.45, right = mouseAngle + 0.45;
+        ctx.lineTo(lx+dx*20 + Math.cos(left)*370, ly+dy*20 + Math.sin(left)*370);
+        ctx.arc(lx+dx*20, ly+dy*20, 370, left, right); ctx.closePath();
+        ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fill();
+        if (flashlight.battery < 20) { ctx.fillStyle = 'rgba(255,0,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+    }
+    
+    function draw() {
+        if (!gameStarted) return;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for (let y=0; y<worldHeight; y++) {
+            for (let x=0; x<worldWidth; x++) {
+                let sx = x*tileSize - camera.x, sy = y*tileSize - camera.y;
+                if (sx > -tileSize && sx < canvas.width+tileSize && sy > -tileSize && sy < canvas.height+tileSize) {
+                    if (map[y][x] === 1) { ctx.fillStyle = '#2a2a3a'; ctx.fillRect(sx, sy, tileSize, tileSize); ctx.fillStyle = '#3a3a4a'; ctx.fillRect(sx+4, sy+4, tileSize-8, tileSize-8); }
+                    else { ctx.fillStyle = '#1a1a2a'; ctx.fillRect(sx, sy, tileSize, tileSize); }
+                }
+            }
+        }
+        for (let d of doors) d.draw();
+        if (exitDoor) exitDoor.draw();
+        for (let h of hidingSpots) h.draw();
+        for (let i of items) i.draw();
+        if (monster) monster.draw();
+        let psx = player.x - camera.x, psy = player.y - camera.y;
+        ctx.beginPath(); ctx.arc(psx, psy, player.radius, 0, Math.PI*2);
+        ctx.fillStyle = player.hiding ? '#888' : '#f7931a'; ctx.fill();
+        if (!player.hiding) {
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(psx-4, psy-3, 2.5, 0, Math.PI*2); ctx.arc(psx+4, psy-3, 2.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(psx-4, psy-3, 1.2, 0, Math.PI*2); ctx.arc(psx+4, psy-3, 1.2, 0, Math.PI*2); ctx.fill();
+        } else { ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace'; ctx.fillText('🪑', psx-6, psy+5); }
+        applyLighting();
+        if (monsterChasing && Math.hypot(player.x-monster.x, player.y-monster.y) < 280 && !player.hiding) { ctx.font = 'bold 18px monospace'; ctx.fillStyle = '#ff0000'; ctx.fillText('⚠️ ОН РЯДОМ! БЕГИТЕ! ⚠️', canvas.width/2-170, 70); }
+        if (flashlight.owned && flashlight.battery <= 15 && flashlight.enabled) { ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#ff0000'; ctx.fillText('⚠️ БАТАРЕЯ РАЗРЯЖАЕТСЯ! ⚠️', canvas.width/2-160, 100); }
+        if (player.hiding) { ctx.font = 'bold 20px monospace'; ctx.fillStyle = '#88ff88'; ctx.fillText('🪑 ВЫ В ШКАФУ 🪑', canvas.width/2-100, 50); }
+    }
+    
+    async function saveToCloud() {
+        let sd = { x: player.x, y: player.y, hp: player.hp, diff: difficulty, fl: { owned: flashlight.owned, enabled: flashlight.enabled, battery: flashlight.battery, drainRate: flashlight.drainRate }, inv: inventory, doors: doors.map(d => d.locked) };
+        try { await fetch(`${SCRIPT_URL}?action=saveGameData&login=${currentUser}&gameId=${GAME_ID}&saveJson=${JSON.stringify(sd)}`); showToast("✅ Сохранено!"); } catch(e) { showToast("❌ Ошибка", true); }
+    }
+    
+    async function loadFromCloud() {
+        try {
+            let res = await fetch(`${SCRIPT_URL}?action=loadGameData&login=${currentUser}&gameId=${GAME_ID}`);
+            let data = await res.json();
+            if (data.success && data.saveData && data.saveData !== "{}") {
+                let s = JSON.parse(data.saveData);
+                difficulty = s.diff || "normal";
+                player.x = s.x || 400; player.y = s.y || 300; player.hp = s.hp || 100;
+                player.speed = difficultySettings[difficulty].playerSpeed;
+                if (s.fl) { flashlight.owned = s.fl.owned; flashlight.enabled = s.fl.enabled; flashlight.battery = s.fl.battery; flashlight.drainRate = s.fl.drainRate || difficultySettings[difficulty].drainRate; }
+                inventory = s.inv || { crowbar: false, key: false, keycard: false, batteries: 0, medkits: 2 };
+                if (s.doors) for (let i=0; i<doors.length && i<s.doors.length; i++) doors[i].locked = s.doors[i];
+                generateWorld(); updateUI(); showToast("📀 Прогресс загружен!"); return true;
+            } else { generateWorld(); updateUI(); return false; }
+        } catch(e) { generateWorld(); updateUI(); return false; }
+    }
+    
+    function startGame() {
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        startAmbient();
+        document.getElementById('menuOverlay').style.display = 'none';
+        document.getElementById('gameUI').classList.remove('hidden');
+        gameStarted = true; gameActive = true; isPaused = false;
+        showToast(`🔦 Сложность: ${difficulty === 'easy' ? 'ЛЕГКО' : (difficulty === 'normal' ? 'НОРМАЛЬНО' : (difficulty === 'hard' ? 'СЛОЖНО' : 'ИМБА'))}. Найдите фонарик!`);
+    }
+    
+    function pauseGame() { if (!gameStarted) return; isPaused = true; document.getElementById('menuOverlay').style.display = 'flex'; }
+    function resumeGame() { isPaused = false; document.getElementById('menuOverlay').style.display = 'none'; if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
+    
+    function init() {
+        initAudio();
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                difficulty = btn.dataset.diff;
+                showToast(`Сложность: ${btn.textContent}`, false);
+            };
+        });
+        document.querySelector('.difficulty-btn[data-diff="normal"]').classList.add('selected');
+        
+        generateWorld(); updateUI();
+        
+        document.getElementById('startGameBtn').onclick = startGame;
+        document.getElementById('continueGameBtn').onclick = async () => { await loadFromCloud(); startGame(); };
+        document.getElementById('helpMenuBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.add('hidden'); document.getElementById('helpPanel').classList.remove('hidden'); };
+        document.getElementById('backToMainBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.remove('hidden'); document.getElementById('helpPanel').classList.add('hidden'); };
+        document.getElementById('menuBtn').onclick = pauseGame;
+        document.getElementById('victoryRestartBtn').onclick = restartGame;
+        document.getElementById('victoryMenuBtn').onclick = () => { document.getElementById('victoryPanel').classList.add('hidden'); document.getElementById('menuOverlay').style.display = 'flex'; gameStarted = false; };
+        document.getElementById('gameOverRestartBtn').onclick = restartGame;
+        document.getElementById('gameOverMenuBtn').onclick = () => { document.getElementById('gameOverPanel').classList.add('hidden'); document.getElementById('menuOverlay').style.display = 'flex'; gameStarted = false; };
+        
+        const updateMouse = (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+            let cx, cy;
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; e.preventDefault(); }
+            else { cx = e.clientX; cy = e.clientY; }
+            mouseX = (cx - rect.left) * scaleX; mouseY = (cy - rect.top) * scaleY;
+            mouseX = Math.min(Math.max(mouseX, 0), canvas.width); mouseY = Math.min(Math.max(mouseY, 0), canvas.height);
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        };
+        
+        canvas.addEventListener('mousemove', updateMouse);
+        canvas.addEventListener('mousedown', (e) => { e.preventDefault(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); });
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+        canvas.addEventListener('touchmove', updateMouse);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); updateMouse(e); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); });
+        
+        window.addEventListener('keydown', (e) => {
+            let k = e.key.toLowerCase();
+            if (k === 'w') keysPressed.w = true; if (k === 's') keysPressed.s = true; if (k === 'a') keysPressed.a = true; if (k === 'd') keysPressed.d = true;
+            if (k === 'ц') keysPressed.ц = true; if (k === 'ы') keysPressed.ы = true; if (k === 'ф') keysPressed.ф = true; if (k === 'в') keysPressed.в = true;
+            if (k === 'f') toggleFlashlight(); if (k === 'e') interact(); if (k === 'r') useBattery(); if (k === 'h') useMedkit();
+            if (k === ' ' || k === 'space') { e.preventDefault(); for (let h of hidingSpots) if (Math.hypot(player.x-h.x, player.y-h.y) < player.radius + h.radius + 15) { h.interact(); break; } }
+            if (k === 'escape' && gameStarted) { if (isPaused) resumeGame(); else pauseGame(); }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            let k = e.key.toLowerCase();
+            if (k === 'w') keysPressed.w = false; if (k === 's') keysPressed.s = false; if (k === 'a') keysPressed.a = false; if (k === 'd') keysPressed.d = false;
+            if (k === 'ц') keysPressed.ц = false; if (k === 'ы') keysPressed.ы = false; if (k === 'ф') keysPressed.ф = false; if (k === 'в') keysPressed.в = false;
+        });
+        
+        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+        gameLoop();
+        setInterval(() => { if (gameStarted && gameActive && !isPaused) saveToCloud(); }, 60000);
+    }
+    
+    init();
+</script>
+</body>
+</html>
