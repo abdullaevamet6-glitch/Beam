@@ -79,6 +79,51 @@
         .stat-item { display: flex; justify-content: space-between; margin: 12px 0; align-items: center; }
         .stat-item button { background: #f7931a; color: black; padding: 4px 16px; width: auto; }
         hr { border-color: #2a2a3a; margin: 15px 0; }
+        
+        /* Шкала загрузки CS2 style */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            transition: opacity 0.5s;
+        }
+        .loading-bar-container {
+            width: 300px;
+            height: 6px;
+            background: #2a2a3a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: #f7931a;
+            transition: width 0.1s linear;
+        }
+        .loading-text {
+            font-family: monospace;
+            color: #f7931a;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        .game-over-panel {
+            background: #0a0a12cc;
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 32px;
+            text-align: center;
+            border: 1px solid #ff4444;
+        }
+        .game-over-panel h2 { color: #ff4444; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -98,6 +143,13 @@
     </div>
 </div>
 
+<!-- ШКАЛА ЗАГРУЗКИ CS2 -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-text">⚡ CS: NOVA ⚡</div>
+    <div class="loading-bar-container"><div class="loading-bar" id="loadingBar"></div></div>
+    <div class="loading-text" id="loadingStatus">Подключение к облаку...</div>
+</div>
+
 <!-- ГЛАВНОЕ МЕНЮ -->
 <div id="mainMenuModal" class="modal-overlay">
     <div class="modal-card">
@@ -106,6 +158,17 @@
         <button id="upgradeMenuBtn">📈 ПРОКАЧКА</button>
         <button id="settingsMenuBtn">⚙ НАСТРОЙКИ</button>
         <button id="exitToBeamBtn">🛒 В МАГАЗИН BEAM</button>
+    </div>
+</div>
+
+<!-- ОКНО ПРОИГРЫША -->
+<div id="gameOverModal" class="modal-overlay">
+    <div class="modal-card game-over-panel">
+        <h2>💀 ВЫ ПОГИБЛИ 💀</h2>
+        <p>Волна: <span id="gameOverWave">1</span></p>
+        <p>Убито врагов: <span id="gameOverKills">0</span></p>
+        <button id="gameOverNewGameBtn">🔄 НОВАЯ ИГРА</button>
+        <button id="gameOverMenuBtn">🏠 ГЛАВНОЕ МЕНЮ</button>
     </div>
 </div>
 
@@ -136,62 +199,25 @@
 <div id="toastMsg" class="toast"></div>
 
 <script>
+    let currentUser = localStorage.getItem('beam_user') || "player";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
+    
+    let soundEnabled = true;
+    function playHoverSound() { if(!soundEnabled) return; try { const audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.frequency.value = 880; gainNode.gain.value = 0.1; oscillator.type = "sine"; oscillator.start(); gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2); oscillator.stop(audioCtx.currentTime + 0.2); setTimeout(() => audioCtx.close(), 300); } catch(e) {} }
+    function playClickSound() { if(!soundEnabled) return; try { const audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.frequency.value = 660; gainNode.gain.value = 0.15; oscillator.type = "square"; oscillator.start(); gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1); oscillator.stop(audioCtx.currentTime + 0.1); setTimeout(() => audioCtx.close(), 200); } catch(e) {} }
+    
+    let permanent = { maxHpBonus: 0, armorBonus: 0, damageBonus: 0, regenBonus: 0, fireRateBonus: 0 };
+    
+    async function savePermanentToCloud() { if(!currentUser) return; await fetch(`${SCRIPT_URL}?action=saveGameData&login=${encodeURIComponent(currentUser)}&gameId=csnova_permanent&saveJson=${encodeURIComponent(JSON.stringify(permanent))}`); }
+    async function loadPermanentFromCloud() { if(!currentUser) return; const res = await fetch(`${SCRIPT_URL}?action=loadGameData&login=${encodeURIComponent(currentUser)}&gameId=csnova_permanent`); const data = await res.json(); if(data.success && data.saveData) permanent = JSON.parse(data.saveData); updatePermanentUI(); }
+    
     let gameActive = false;
     let animationId = null;
     let frame = 0;
-    let soundEnabled = true;
+    let currentWave = 1;
+    let currentKills = 0;
     
-    // ЗВУКИ (синтезированные через Web Audio)
-    function playHoverSound() {
-        if(!soundEnabled) return;
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.frequency.value = 880;
-            gainNode.gain.value = 0.1;
-            oscillator.type = "sine";
-            oscillator.start();
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
-            oscillator.stop(audioCtx.currentTime + 0.2);
-            setTimeout(() => audioCtx.close(), 300);
-        } catch(e) { console.log("Audio error"); }
-    }
-    
-    function playClickSound() {
-        if(!soundEnabled) return;
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.frequency.value = 660;
-            gainNode.gain.value = 0.15;
-            oscillator.type = "square";
-            oscillator.start();
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
-            oscillator.stop(audioCtx.currentTime + 0.1);
-            setTimeout(() => audioCtx.close(), 200);
-        } catch(e) { console.log("Audio error"); }
-    }
-    
-    // ПОСТОЯННАЯ ПРОКАЧКА
-    let permanent = {
-        maxHpBonus: 0,
-        armorBonus: 0,
-        damageBonus: 0,
-        regenBonus: 0,
-        fireRateBonus: 0
-    };
-    
-    let player = {
-        x: 500-16, y: 470, width: 32, height: 32,
-        hp: 100, maxHp: 100, armor: 0, kills: 0, coins: 200,
-        weapon: { name: "Пистолет", damage: 18, fireDelay: 12, cooldown: 0, color: "#ccaa66" }
-    };
+    let player = { x: 500-16, y: 470, width: 32, height: 32, hp: 100, maxHp: 100, armor: 0, kills: 0, coins: 200, weapon: { name: "Пистолет", damage: 18, fireDelay: 12, cooldown: 0, color: "#ccaa66" } };
     let bullets = [], enemies = [], particles = [];
     let wave = 1, enemiesToSpawn = 6, enemiesRemaining = 0;
     let lastRegenFrame = 0;
@@ -199,45 +225,10 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    function showToast(msg, isError = false) {
-        const toast = document.getElementById('toastMsg');
-        toast.innerText = msg;
-        toast.style.backgroundColor = isError ? '#aa3333' : '#f7931a';
-        toast.style.opacity = '1';
-        setTimeout(() => toast.style.opacity = '0', 2000);
-    }
-    
-    function updateUI() {
-        document.getElementById('hpValue').innerText = player.hp;
-        document.getElementById('armorValue').innerText = player.armor;
-        document.getElementById('weaponName').innerText = player.weapon.name;
-        document.getElementById('coinValue').innerText = player.coins;
-        document.getElementById('killsValue').innerText = player.kills;
-        let percent = (player.hp / player.maxHp) * 100;
-        document.getElementById('hpFillBar').style.width = Math.max(0, percent) + '%';
-    }
-    
-    function updatePermanentUI() {
-        document.getElementById('statHp').innerText = 100 + permanent.maxHpBonus;
-        document.getElementById('statArmor').innerText = permanent.armorBonus;
-        document.getElementById('statDamage').innerText = permanent.damageBonus;
-        document.getElementById('statRegen').innerText = permanent.regenBonus;
-        document.getElementById('statFireRate').innerText = permanent.fireRateBonus;
-    }
-    
-    function savePermanent() {
-        localStorage.setItem('csnova_permanent', JSON.stringify(permanent));
-    }
-    
-    function loadPermanent() {
-        let saved = localStorage.getItem('csnova_permanent');
-        if(saved) permanent = JSON.parse(saved);
-        updatePermanentUI();
-    }
-    
-    function spawnEffectText(text, x, y, color) {
-        particles.push({ x, y, text, life: 30, color: color });
-    }
+    function showToast(msg, isError = false) { const toast = document.getElementById('toastMsg'); toast.innerText = msg; toast.style.backgroundColor = isError ? '#aa3333' : '#f7931a'; toast.style.opacity = '1'; setTimeout(() => toast.style.opacity = '0', 2000); }
+    function updateUI() { document.getElementById('hpValue').innerText = player.hp; document.getElementById('armorValue').innerText = player.armor; document.getElementById('weaponName').innerText = player.weapon.name; document.getElementById('coinValue').innerText = player.coins; document.getElementById('killsValue').innerText = player.kills; let percent = (player.hp / player.maxHp) * 100; document.getElementById('hpFillBar').style.width = Math.max(0, percent) + '%'; }
+    function updatePermanentUI() { document.getElementById('statHp').innerText = 100 + permanent.maxHpBonus; document.getElementById('statArmor').innerText = permanent.armorBonus; document.getElementById('statDamage').innerText = permanent.damageBonus; document.getElementById('statRegen').innerText = permanent.regenBonus; document.getElementById('statFireRate').innerText = permanent.fireRateBonus; }
+    function spawnEffectText(text, x, y, color) { particles.push({ x, y, text, life: 30, color: color }); }
     
     function spawnEnemy() {
         let type = Math.random();
@@ -246,226 +237,94 @@
         let reward = 20 + wave * 2;
         let color = "#c44";
         let armor = 0;
-        
-        if(type < 0.2 && wave >= 3) {
-            baseHp = Math.floor(baseHp * 1.5);
-            armor = 10;
-            color = "#b87c4f";
-            reward += 30;
-        } else if(type < 0.4 && wave >= 5) {
-            speed *= 2.2;
-            color = "#e9a56e";
-            reward += 15;
-        } else if(type < 0.55 && wave >= 8) {
-            color = "#44aa66";
-            reward += 25;
-        }
-        
-        enemies.push({
-            x: 20 + Math.random() * (canvas.width - 60), y: -40,
-            width: 36, height: 36, hp: baseHp, maxHp: baseHp,
-            speed: speed, color: color, reward: reward, armor: armor
-        });
+        if(type < 0.2 && wave >= 3) { baseHp = Math.floor(baseHp * 1.5); armor = 10; color = "#b87c4f"; reward += 30; }
+        else if(type < 0.4 && wave >= 5) { speed *= 2.2; color = "#e9a56e"; reward += 15; }
+        else if(type < 0.55 && wave >= 8) { color = "#44aa66"; reward += 25; }
+        enemies.push({ x: 20 + Math.random() * (canvas.width - 60), y: -40, width: 36, height: 36, hp: baseHp, maxHp: baseHp, speed: speed, color: color, reward: reward, armor: armor });
         enemiesRemaining++;
     }
     
-    function spawnBoss() {
-        let bossHp = 300 + wave * 15;
-        enemies.push({
-            x: canvas.width/2 - 40, y: -60,
-            width: 80, height: 80, hp: bossHp, maxHp: bossHp,
-            speed: 0.5, color: "#ff6600", reward: 500 + wave * 20, armor: 15
-        });
-        enemiesRemaining++;
-        showToast("🔥 БОСС ПОЯВИЛСЯ! 🔥", false);
-    }
+    function spawnBoss() { let bossHp = 300 + wave * 15; enemies.push({ x: canvas.width/2 - 40, y: -60, width: 80, height: 80, hp: bossHp, maxHp: bossHp, speed: 0.5, color: "#ff6600", reward: 500 + wave * 20, armor: 15 }); enemiesRemaining++; showToast("🔥 БОСС ПОЯВИЛСЯ! 🔥", false); }
     
-    function shoot() {
-        if(player.weapon.cooldown > 0) return;
-        let finalDamage = player.weapon.damage + permanent.damageBonus;
-        bullets.push({
-            x: player.x + player.width/2 - 4, y: player.y - 8,
-            w: 6, h: 14, damage: finalDamage
-        });
-        let fireDelay = Math.max(4, player.weapon.fireDelay - permanent.fireRateBonus);
-        player.weapon.cooldown = fireDelay;
-        if(soundEnabled) playClickSound();
-    }
+    function shoot() { if(player.weapon.cooldown > 0) return; let finalDamage = player.weapon.damage + permanent.damageBonus; bullets.push({ x: player.x + player.width/2 - 4, y: player.y - 8, w: 6, h: 14, damage: finalDamage }); let fireDelay = Math.max(4, player.weapon.fireDelay - permanent.fireRateBonus); player.weapon.cooldown = fireDelay; if(soundEnabled) playClickSound(); }
     
     function updateGame() {
         if(!gameActive) return;
         if(player.weapon.cooldown > 0) player.weapon.cooldown--;
-        
-        if(frame - lastRegenFrame > 60 && permanent.regenBonus > 0 && player.hp < player.maxHp) {
-            player.hp = Math.min(player.maxHp, player.hp + permanent.regenBonus);
-            updateUI();
-            lastRegenFrame = frame;
-        }
-        
+        if(frame - lastRegenFrame > 60 && permanent.regenBonus > 0 && player.hp < player.maxHp) { player.hp = Math.min(player.maxHp, player.hp + permanent.regenBonus); updateUI(); lastRegenFrame = frame; }
         for(let i=0; i<bullets.length; i++) { bullets[i].y -= 9; if(bullets[i].y + bullets[i].h < 0) bullets.splice(i,1); }
-        
-        for(let i=0; i<enemies.length; i++) {
-            enemies[i].y += enemies[i].speed;
-            if(enemies[i].y > canvas.height + 100) {
-                let dmg = 10 + Math.floor(wave / 5);
-                player.hp -= dmg;
-                spawnEffectText(`⚠️ ПРОПУСК -${dmg}`, canvas.width-100, 60, '#ff8888');
-                enemies.splice(i,1);
-                enemiesRemaining--;
-                updateUI();
-                if(player.hp <= 0) gameActive = false;
-                i--;
-            }
-        }
-        
-        for(let i=0; i<bullets.length; i++) {
-            for(let j=0; j<enemies.length; j++) {
-                let b=bullets[i], e=enemies[j];
-                if(b.x < e.x+e.width && b.x+b.w > e.x && b.y < e.y+e.height && b.y+b.h > e.y) {
-                    let dmg = Math.max(1, b.damage - e.armor);
-                    e.hp -= dmg;
-                    bullets.splice(i,1);
-                    if(e.hp <= 0) {
-                        player.coins += e.reward;
-                        player.kills++;
-                        enemies.splice(j,1);
-                        enemiesRemaining--;
-                        spawnEffectText(`+${e.reward}💰`, e.x+10, e.y-10, '#ffd966');
-                        updateUI();
-                    }
-                    break;
-                }
-            }
-        }
-        
-        for(let i=0; i<enemies.length; i++) {
-            let e = enemies[i];
-            if(player.x < e.x+e.width && player.x+player.width > e.x && player.y < e.y+e.height && player.y+player.height > e.y) {
-                let baseDamage = 15 + Math.floor(wave / 3);
-                let remainingDamage = baseDamage;
-                let absorbed = 0;
-                let totalArmor = player.armor + permanent.armorBonus;
-                if(totalArmor > 0) {
-                    absorbed = Math.min(totalArmor, baseDamage * 0.5);
-                    player.armor = Math.max(0, totalArmor - absorbed);
-                    remainingDamage = baseDamage - absorbed;
-                }
-                player.hp -= remainingDamage;
-                spawnEffectText(`-${remainingDamage}❤️`, player.x, player.y-20, '#ff8888');
-                if(absorbed > 0) spawnEffectText(`🛡️ -${absorbed}`, player.x+20, player.y-20, '#aaaaff');
-                enemies.splice(i,1);
-                enemiesRemaining--;
-                updateUI();
-                if(player.hp <= 0) { gameActive = false; showToast("💀 ВЫ ПОГИБЛИ!", true); stopGameAndShowDeathMenu(); }
-                break;
-            }
-        }
-        
-        if(enemies.length === 0 && enemiesRemaining === 0) {
-            wave++;
-            if(wave % 10 === 0) {
-                spawnBoss();
-            } else {
-                let add = 4 + Math.floor(wave/2);
-                enemiesToSpawn = Math.min(add, 15);
-                for(let i=0;i<enemiesToSpawn;i++) spawnEnemy();
-            }
-        }
+        for(let i=0; i<enemies.length; i++) { enemies[i].y += enemies[i].speed; if(enemies[i].y > canvas.height + 100) { let dmg = 10 + Math.floor(wave / 5); player.hp -= dmg; spawnEffectText(`⚠️ ПРОПУСК -${dmg}`, canvas.width-100, 60, '#ff8888'); enemies.splice(i,1); enemiesRemaining--; updateUI(); if(player.hp <= 0) { gameActive = false; showGameOver(); } i--; } }
+        for(let i=0; i<bullets.length; i++) { for(let j=0; j<enemies.length; j++) { let b=bullets[i], e=enemies[j]; if(b.x < e.x+e.width && b.x+b.w > e.x && b.y < e.y+e.height && b.y+b.h > e.y) { let dmg = Math.max(1, b.damage - e.armor); e.hp -= dmg; bullets.splice(i,1); if(e.hp <= 0) { player.coins += e.reward; player.kills++; currentKills++; enemies.splice(j,1); enemiesRemaining--; spawnEffectText(`+${e.reward}💰`, e.x+10, e.y-10, '#ffd966'); updateUI(); } break; } } }
+        for(let i=0; i<enemies.length; i++) { let e = enemies[i]; if(player.x < e.x+e.width && player.x+player.width > e.x && player.y < e.y+e.height && player.y+player.height > e.y) { let baseDamage = 15 + Math.floor(wave / 3); let totalArmor = player.armor + permanent.armorBonus; let absorbed = Math.min(totalArmor, baseDamage * 0.5); let remainingDamage = baseDamage - absorbed; let newArmor = totalArmor - absorbed; player.armor = Math.max(0, newArmor - permanent.armorBonus); player.hp -= remainingDamage; spawnEffectText(`-${remainingDamage}❤️`, player.x, player.y-20, '#ff8888'); if(absorbed > 0) spawnEffectText(`🛡️ -${absorbed}`, player.x+20, player.y-20, '#aaaaff'); enemies.splice(i,1); enemiesRemaining--; updateUI(); if(player.hp <= 0) { gameActive = false; showGameOver(); } break; } }
+        if(enemies.length === 0 && enemiesRemaining === 0) { wave++; currentWave = wave; if(wave % 10 === 0) spawnBoss(); else { let add = 4 + Math.floor(wave/2); enemiesToSpawn = Math.min(add, 15); for(let i=0;i<enemiesToSpawn;i++) spawnEnemy(); } }
         if(frame % 80 === 0 && enemies.length < 8 && enemiesRemaining < enemiesToSpawn+2 && wave % 10 !== 0) spawnEnemy();
         frame++;
     }
     
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#0a0a14"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#5a9eff"; ctx.fillRect(player.x, player.y, player.width, player.height);
-        ctx.fillStyle = "#ffaa33"; ctx.fillRect(player.x+10, player.y-6, 12, 8);
-        ctx.fillStyle = player.weapon.color; ctx.fillRect(player.x+player.width/2-5, player.y-12, 10, 15);
-        for(let b of bullets) { ctx.fillStyle = "#ffee88"; ctx.fillRect(b.x, b.y, b.w, b.h); }
-        for(let e of enemies) {
-            ctx.fillStyle = e.color; ctx.fillRect(e.x, e.y, e.width, e.height);
-            ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace";
-            ctx.fillText(`${e.hp}❤️`, e.x+4, e.y-4);
-            if(e.width === 80) { ctx.fillStyle = "#ffaa44"; ctx.font = "bold 14px monospace"; ctx.fillText("BOSS", e.x+20, e.y+40); }
-        }
-        for(let p of particles) { ctx.fillStyle = p.color; ctx.font = "bold 16px monospace"; ctx.fillText(p.text, p.x, p.y - (30-p.life)/2); p.life--; }
-        particles = particles.filter(p => p.life > 0);
-        ctx.font = "bold 16px monospace"; ctx.fillStyle = "#ffd966";
-        ctx.fillText(`🌊 Волна ${wave}`, 20, 40);
-        ctx.fillStyle = "#aaaaff";
-        ctx.fillText(`💀 Осталось: ${enemies.length}`, 20, 70);
-    }
-    
+    function draw() { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "#0a0a14"; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "#5a9eff"; ctx.fillRect(player.x, player.y, player.width, player.height); ctx.fillStyle = "#ffaa33"; ctx.fillRect(player.x+10, player.y-6, 12, 8); ctx.fillStyle = player.weapon.color; ctx.fillRect(player.x+player.width/2-5, player.y-12, 10, 15); for(let b of bullets) { ctx.fillStyle = "#ffee88"; ctx.fillRect(b.x, b.y, b.w, b.h); } for(let e of enemies) { ctx.fillStyle = e.color; ctx.fillRect(e.x, e.y, e.width, e.height); ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace"; ctx.fillText(`${e.hp}❤️`, e.x+4, e.y-4); if(e.width === 80) { ctx.fillStyle = "#ffaa44"; ctx.font = "bold 14px monospace"; ctx.fillText("BOSS", e.x+20, e.y+40); } } for(let p of particles) { ctx.fillStyle = p.color; ctx.font = "bold 16px monospace"; ctx.fillText(p.text, p.x, p.y - (30-p.life)/2); p.life--; } particles = particles.filter(p => p.life > 0); ctx.font = "bold 16px monospace"; ctx.fillStyle = "#ffd966"; ctx.fillText(`🌊 Волна ${wave}`, 20, 40); ctx.fillStyle = "#aaaaff"; ctx.fillText(`💀 Осталось: ${enemies.length}`, 20, 70); }
     function gameLoop() { if(!gameActive) return; updateGame(); draw(); animationId = requestAnimationFrame(gameLoop); }
     
     function startNewGame() {
-        player = {
-            x: 500-16, y: 470, width: 32, height: 32,
-            hp: 100 + permanent.maxHpBonus,
-            maxHp: 100 + permanent.maxHpBonus,
-            armor: permanent.armorBonus,
-            kills: 0, coins: 200,
-            weapon: { name: "Пистолет", damage: 18, fireDelay: 12, cooldown: 0, color: "#ccaa66" }
-        };
-        bullets = []; enemies = []; wave = 1; frame = 0; enemiesRemaining = 0;
-        gameActive = true;
-        for(let i=0;i<6;i++) spawnEnemy();
-        updateUI();
-        if(animationId) cancelAnimationFrame(animationId);
-        gameLoop();
+        player = { x: 500-16, y: 470, width: 32, height: 32, hp: 100 + permanent.maxHpBonus, maxHp: 100 + permanent.maxHpBonus, armor: permanent.armorBonus, kills: 0, coins: 200, weapon: { name: "Пистолет", damage: 18, fireDelay: 12, cooldown: 0, color: "#ccaa66" } };
+        bullets = []; enemies = []; wave = 1; currentWave = 1; currentKills = 0; frame = 0; enemiesRemaining = 0; gameActive = true;
+        for(let i=0;i<6;i++) spawnEnemy(); updateUI(); if(animationId) cancelAnimationFrame(animationId); gameLoop();
         document.getElementById('mainMenuModal').classList.remove('active');
+        document.getElementById('gameOverModal').classList.remove('active');
     }
     
-    function stopGameAndShowDeathMenu() {
+    function showGameOver() {
         gameActive = false;
         if(animationId) cancelAnimationFrame(animationId);
-        showToast("💀 ВЫ ПОГИБЛИ! Начните новую игру", true);
-        document.getElementById('mainMenuModal').classList.add('active');
+        document.getElementById('gameOverWave').innerText = currentWave;
+        document.getElementById('gameOverKills').innerText = player.kills;
+        document.getElementById('gameOverModal').classList.add('active');
     }
     
-    function showMainMenu() {
-        gameActive = false;
-        if(animationId) cancelAnimationFrame(animationId);
-        document.getElementById('mainMenuModal').classList.add('active');
+    function showMainMenu() { gameActive = false; if(animationId) cancelAnimationFrame(animationId); document.getElementById('mainMenuModal').classList.add('active'); document.getElementById('gameOverModal').classList.remove('active'); }
+    
+    // Загрузка с анимацией
+    async function initGame() {
+        const loadingBar = document.getElementById('loadingBar');
+        const loadingStatus = document.getElementById('loadingStatus');
+        loadingBar.style.width = '30%'; loadingStatus.innerText = 'Загрузка прокачки...';
+        await loadPermanentFromCloud();
+        loadingBar.style.width = '70%'; loadingStatus.innerText = 'Подготовка оружия...';
+        await new Promise(r => setTimeout(r, 300));
+        loadingBar.style.width = '100%'; loadingStatus.innerText = 'Готово!';
+        await new Promise(r => setTimeout(r, 500));
+        document.getElementById('loadingOverlay').style.opacity = '0';
+        setTimeout(() => { document.getElementById('loadingOverlay').style.display = 'none'; showMainMenu(); }, 500);
     }
     
-    // ПРОКАЧКА
-    document.getElementById('upgradeHpBtn').onclick = () => { if(player.coins>=200) { player.coins-=200; permanent.maxHpBonus+=20; updatePermanentUI(); savePermanent(); showToast("❤️ Здоровье увеличено!", false); updateUI(); } else showToast("❌ Не хватает монет", true); };
-    document.getElementById('upgradeArmorBtn').onclick = () => { if(player.coins>=150) { player.coins-=150; permanent.armorBonus+=10; updatePermanentUI(); savePermanent(); showToast("🛡️ Броня увеличена!", false); updateUI(); } else showToast("❌ Не хватает монет", true); };
-    document.getElementById('upgradeDamageBtn').onclick = () => { if(player.coins>=250) { player.coins-=250; permanent.damageBonus+=5; updatePermanentUI(); savePermanent(); showToast("⚡ Урон увеличен!", false); } else showToast("❌ Не хватает монет", true); };
-    document.getElementById('upgradeRegenBtn').onclick = () => { if(player.coins>=300) { player.coins-=300; permanent.regenBonus+=1; updatePermanentUI(); savePermanent(); showToast("💚 Регенерация +1/сек!", false); } else showToast("❌ Не хватает монет", true); };
-    document.getElementById('upgradeFireRateBtn').onclick = () => { if(player.coins>=400) { player.coins-=400; permanent.fireRateBonus+=2; updatePermanentUI(); savePermanent(); showToast("🏹 Скорость стрельбы увеличена!", false); } else showToast("❌ Не хватает монет", true); };
+    document.getElementById('upgradeHpBtn').onclick = async () => { if(player.coins>=200) { player.coins-=200; permanent.maxHpBonus+=20; updatePermanentUI(); await savePermanentToCloud(); showToast("❤️ Здоровье +20", false); updateUI(); } else showToast("❌ Не хватает", true); };
+    document.getElementById('upgradeArmorBtn').onclick = async () => { if(player.coins>=150) { player.coins-=150; permanent.armorBonus+=10; updatePermanentUI(); await savePermanentToCloud(); showToast("🛡️ Броня +10", false); updateUI(); } else showToast("❌ Не хватает", true); };
+    document.getElementById('upgradeDamageBtn').onclick = async () => { if(player.coins>=250) { player.coins-=250; permanent.damageBonus+=5; updatePermanentUI(); await savePermanentToCloud(); showToast("⚡ Урон +5", false); } else showToast("❌ Не хватает", true); };
+    document.getElementById('upgradeRegenBtn').onclick = async () => { if(player.coins>=300) { player.coins-=300; permanent.regenBonus+=1; updatePermanentUI(); await savePermanentToCloud(); showToast("💚 Реген +1/сек", false); } else showToast("❌ Не хватает", true); };
+    document.getElementById('upgradeFireRateBtn').onclick = async () => { if(player.coins>=400) { player.coins-=400; permanent.fireRateBonus+=2; updatePermanentUI(); await savePermanentToCloud(); showToast("🏹 Скорость стрельбы +2", false); } else showToast("❌ Не хватает", true); };
     
-    // МЕНЮ
     document.getElementById('startGameBtn').onclick = () => { playClickSound(); startNewGame(); };
+    document.getElementById('gameOverNewGameBtn').onclick = () => { playClickSound(); startNewGame(); };
+    document.getElementById('gameOverMenuBtn').onclick = () => { playClickSound(); showMainMenu(); };
     document.getElementById('upgradeMenuBtn').onclick = () => { playClickSound(); document.getElementById('mainMenuModal').classList.remove('active'); document.getElementById('upgradeModal').classList.add('active'); };
     document.getElementById('closeUpgradeBtn').onclick = () => { playClickSound(); document.getElementById('upgradeModal').classList.remove('active'); document.getElementById('mainMenuModal').classList.add('active'); };
     document.getElementById('settingsMenuBtn').onclick = () => { playClickSound(); document.getElementById('mainMenuModal').classList.remove('active'); document.getElementById('settingsModal').classList.add('active'); };
     document.getElementById('closeSettingsBtn').onclick = () => { playClickSound(); document.getElementById('settingsModal').classList.remove('active'); document.getElementById('mainMenuModal').classList.add('active'); };
     document.getElementById('exitToBeamBtn').onclick = () => { playClickSound(); window.location.href = '/'; };
     document.getElementById('menuBtn').onclick = () => { playClickSound(); showMainMenu(); };
-    
-    // НАСТРОЙКИ
     document.getElementById('toggleSoundBtn').onclick = () => { playClickSound(); soundEnabled = !soundEnabled; document.getElementById('soundStatus').innerText = soundEnabled ? "Вкл" : "Выкл"; };
     
-    // МАГАЗИН В БОЮ
-    document.getElementById('buyArmorBtn').onclick = () => { if(player.coins>=150 && gameActive) { playClickSound(); player.coins-=150; player.armor+=20; updateUI(); } else showToast("❌ Не хватает монет", true); };
+    document.getElementById('buyArmorBtn').onclick = () => { if(player.coins>=150 && gameActive) { playClickSound(); player.coins-=150; player.armor+=20; updateUI(); } else showToast("❌ Не хватает", true); };
     document.getElementById('buyMedkitBtn').onclick = () => { if(player.coins>=100 && gameActive && player.hp<player.maxHp) { playClickSound(); player.coins-=100; player.hp=Math.min(player.maxHp, player.hp+40); updateUI(); } else showToast("❌ Нельзя", true); };
-    document.getElementById('buyRifleBtn').onclick = () => { if(player.coins>=350 && gameActive) { playClickSound(); player.coins-=350; player.weapon={ name:"Автомат", damage:30, fireDelay:8, cooldown:0, color:"#88aa44" }; updateUI(); } else showToast("❌ Не хватает монет", true); };
-    document.getElementById('buySniperBtn').onclick = () => { if(player.coins>=600 && gameActive) { playClickSound(); player.coins-=600; player.weapon={ name:"Снайперка", damage:52, fireDelay:28, cooldown:0, color:"#5588aa" }; updateUI(); } else showToast("❌ Не хватает монет", true); };
+    document.getElementById('buyRifleBtn').onclick = () => { if(player.coins>=350 && gameActive) { playClickSound(); player.coins-=350; player.weapon={ name:"Автомат", damage:30, fireDelay:8, cooldown:0, color:"#88aa44" }; updateUI(); } else showToast("❌ Не хватает", true); };
+    document.getElementById('buySniperBtn').onclick = () => { if(player.coins>=600 && gameActive) { playClickSound(); player.coins-=600; player.weapon={ name:"Снайперка", damage:52, fireDelay:28, cooldown:0, color:"#5588aa" }; updateUI(); } else showToast("❌ Не хватает", true); };
     
-    // ЭФФЕКТЫ НАВЕДЕНИЯ
-    document.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('mouseenter', () => playHoverSound());
-    });
-    
+    document.querySelectorAll('button').forEach(btn => btn.addEventListener('mouseenter', () => playHoverSound()));
     canvas.addEventListener('mousemove', (e) => { if(!gameActive) return; const rect = canvas.getBoundingClientRect(); let mx = e.clientX - rect.left - player.width/2; player.x = Math.min(Math.max(mx, 0), canvas.width - player.width); });
     canvas.addEventListener('click', () => { if(gameActive) shoot(); });
     document.addEventListener('keydown', (e) => { if(e.code === 'Space' && gameActive) shoot(); });
     
-    loadPermanent();
     updatePermanentUI();
-    showMainMenu();
+    initGame();
 </script>
 </body>
 </html>
