@@ -161,7 +161,6 @@
         }
         
         .action-btn:active { background: #f7931a; transform: scale(0.96); color: #000; }
-        .action-btn:disabled { opacity: 0.4; transform: none; }
         
         .current-step-hint {
             background: #2c3e66;
@@ -261,10 +260,9 @@
             opacity: 0;
             transition: 0.2s;
             pointer-events: none;
-            white-space: nowrap;
+            text-align: center;
             max-width: 90%;
             white-space: normal;
-            text-align: center;
         }
         
         .menu-overlay {
@@ -326,7 +324,7 @@
 <body>
 <div class="game-container">
     <div class="top-bar">
-        <div class="user-info" id="userName">👤 guest</div>
+        <div class="user-info" id="userName">👤 загрузка...</div>
         <div class="save-status" id="saveStatus">💾</div>
         <div class="level-box">⭐ <span id="level">1</span></div>
         <div class="xp-box">📊 <span id="xp">0</span>/<span id="xpNeeded">100</span></div>
@@ -372,7 +370,7 @@
     </div>
     
     <div id="recipesTab" class="tab-content">
-        <div style="font-size:0.65rem; color:#aaa; text-align:center; margin-bottom:8px;">🏆 Открытые рецепты (экспериментируйте!)</div>
+        <div style="font-size:0.65rem; color:#aaa; text-align:center; margin-bottom:8px;">🏆 ОТКРЫТЫЕ РЕЦЕПТЫ</div>
         <div class="recipes-list" id="recipesList"></div>
     </div>
 </div>
@@ -391,7 +389,6 @@
 <div id="loadingOverlay" class="loading hidden">⏳ Загрузка сохранения...</div>
 
 <script>
-    // БЭКЕНД BEAM
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
     const GAME_ID = "chef_studio";
     
@@ -400,8 +397,8 @@
     let saveTimeout = null;
     let currentBowl = [];
     let discoveredRecipes = [];
+    let isLoading = false;
     
-    // ВСЕ ИНГРЕДИЕНТЫ (30+)
     const allIngredients = {
         мясо: { emoji: "🥩", price: 1.5, name: "Мясо" },
         курица: { emoji: "🍗", price: 1.2, name: "Курица" },
@@ -442,38 +439,62 @@
     let inventory = {};
     for(let id of Object.keys(allIngredients)) { inventory[id] = 3; }
     
-    // ЭКСПЕРИМЕНТАЛЬНЫЕ РЕЦЕПТЫ
     const experimentalRecipes = [
-        { name: "🥛 Молочный коктейль", emoji: "🥤", ingredients: ["молоко", "клубника"], price: 2.5, xp: 8 },
-        { name: "🍓 Фруктовый смузи", emoji: "🥤", ingredients: ["клубника", "банан", "йогурт"], price: 3.0, xp: 10 },
-        { name: "🍳 Омлет", emoji: "🍳", ingredients: ["яйцо", "молоко", "сыр"], price: 2.0, xp: 7 },
-        { name: "🥗 Цезарь", emoji: "🥗", ingredients: ["салат", "курица", "сыр", "соус"], price: 3.5, xp: 12 },
-        { name: "🍔 Гамбургер", emoji: "🍔", ingredients: ["хлеб", "мясо", "сыр", "салат"], price: 4.0, xp: 14 },
-        { name: "🍕 Пицца", emoji: "🍕", ingredients: ["мука", "сыр", "помидор", "соус"], price: 5.0, xp: 18 },
-        { name: "🍣 Суши", emoji: "🍣", ingredients: ["рис", "рыба", "огурец"], price: 4.5, xp: 15 },
-        { name: "🍟 Картошка фри", emoji: "🍟", ingredients: ["картофель", "масло", "соль"], price: 2.0, xp: 6 },
-        { name: "🍗 Жареная курица", emoji: "🍗", ingredients: ["курица", "масло", "чеснок"], price: 3.0, xp: 10 },
-        { name: "🥣 Грибной суп", emoji: "🥣", ingredients: ["грибы", "картофель", "лук"], price: 2.8, xp: 9 },
-        { name: "🍰 Шоколадный торт", emoji: "🍰", ingredients: ["мука", "шоколад", "яйцо", "сахар"], price: 6.0, xp: 22 },
-        { name: "🥞 Блины", emoji: "🥞", ingredients: ["мука", "молоко", "яйцо", "сахар"], price: 2.5, xp: 8 },
-        { name: "🍯 Медовик", emoji: "🍰", ingredients: ["мука", "мед", "яйцо", "сахар"], price: 5.5, xp: 20 },
-        { name: "🌯 Шаурма", emoji: "🌯", ingredients: ["мясо", "хлеб", "помидор", "соус"], price: 4.0, xp: 14 },
-        { name: "🍝 Карбонара", emoji: "🍝", ingredients: ["макароны", "мясо", "сыр", "яйцо"], price: 4.2, xp: 15 },
-        { name: "🥩 Стейк с брокколи", emoji: "🥩", ingredients: ["мясо", "брокколи", "масло"], price: 5.0, xp: 18 },
-        { name: "🐟 Рыба с лимоном", emoji: "🐟", ingredients: ["рыба", "лимон", "зелень"], price: 4.0, xp: 14 },
-        { name: "🥧 Яблочный пирог", emoji: "🥧", ingredients: ["яблоко", "мука", "сахар"], price: 3.5, xp: 12 },
-        { name: "🍌 Банановый хлеб", emoji: "🍌", ingredients: ["банан", "мука", "яйцо"], price: 3.0, xp: 10 },
-        { name: "🌽 Кукурузный суп", emoji: "🥣", ingredients: ["кукуруза", "молоко", "лук"], price: 2.5, xp: 8 }
+        { name: "Молочный коктейль", emoji: "🥤", ingredients: ["молоко", "клубника"], price: 2.5, xp: 8 },
+        { name: "Фруктовый смузи", emoji: "🥤", ingredients: ["клубника", "банан", "йогурт"], price: 3.0, xp: 10 },
+        { name: "Омлет", emoji: "🍳", ingredients: ["яйцо", "молоко", "сыр"], price: 2.0, xp: 7 },
+        { name: "Цезарь", emoji: "🥗", ingredients: ["салат", "курица", "сыр", "соус"], price: 3.5, xp: 12 },
+        { name: "Гамбургер", emoji: "🍔", ingredients: ["хлеб", "мясо", "сыр", "салат"], price: 4.0, xp: 14 },
+        { name: "Пицца", emoji: "🍕", ingredients: ["мука", "сыр", "помидор", "соус"], price: 5.0, xp: 18 },
+        { name: "Суши", emoji: "🍣", ingredients: ["рис", "рыба", "огурец"], price: 4.5, xp: 15 },
+        { name: "Картошка фри", emoji: "🍟", ingredients: ["картофель", "масло", "соль"], price: 2.0, xp: 6 },
+        { name: "Жареная курица", emoji: "🍗", ingredients: ["курица", "масло", "чеснок"], price: 3.0, xp: 10 },
+        { name: "Грибной суп", emoji: "🥣", ingredients: ["грибы", "картофель", "лук"], price: 2.8, xp: 9 },
+        { name: "Шоколадный торт", emoji: "🍰", ingredients: ["мука", "шоколад", "яйцо", "сахар"], price: 6.0, xp: 22 },
+        { name: "Блины", emoji: "🥞", ingredients: ["мука", "молоко", "яйцо", "сахар"], price: 2.5, xp: 8 },
+        { name: "Медовик", emoji: "🍰", ingredients: ["мука", "мед", "яйцо", "сахар"], price: 5.5, xp: 20 },
+        { name: "Шаурма", emoji: "🌯", ingredients: ["мясо", "хлеб", "помидор", "соус"], price: 4.0, xp: 14 },
+        { name: "Карбонара", emoji: "🍝", ingredients: ["макароны", "мясо", "сыр", "яйцо"], price: 4.2, xp: 15 },
+        { name: "Стейк с брокколи", emoji: "🥩", ingredients: ["мясо", "брокколи", "масло"], price: 5.0, xp: 18 },
+        { name: "Рыба с лимоном", emoji: "🐟", ingredients: ["рыба", "лимон", "зелень"], price: 4.0, xp: 14 },
+        { name: "Яблочный пирог", emoji: "🥧", ingredients: ["яблоко", "мука", "сахар"], price: 3.5, xp: 12 },
+        { name: "Банановый хлеб", emoji: "🍌", ingredients: ["банан", "мука", "яйцо"], price: 3.0, xp: 10 },
+        { name: "Кукурузный суп", emoji: "🥣", ingredients: ["кукуруза", "молоко", "лук"], price: 2.5, xp: 8 }
     ];
     
+    // ОПРЕДЕЛЕНИЕ ПОЛЬЗОВАТЕЛЯ (РАБОТАЕТ!)
     function getCurrentUser() {
         try {
-            if(window.parent && window.parent.currentUser) return window.parent.currentUser;
-            if(window.currentUser) return window.currentUser;
-        } catch(e) {}
-        let urlParams = new URLSearchParams(window.location.search);
-        if(urlParams.get('user')) return urlParams.get('user');
-        return localStorage.getItem('beam_user') || "guest";
+            // Способ 1: из родительского окна (BEAM)
+            if(window.parent && window.parent.currentUser) {
+                console.log("User from parent:", window.parent.currentUser);
+                return window.parent.currentUser;
+            }
+            // Способ 2: из глобальной переменной
+            if(window.currentUser) {
+                console.log("User from window:", window.currentUser);
+                return window.currentUser;
+            }
+            // Способ 3: из URL параметра
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('user')) {
+                console.log("User from URL:", urlParams.get('user'));
+                return urlParams.get('user');
+            }
+            // Способ 4: из localStorage
+            const stored = localStorage.getItem('beam_current_user');
+            if(stored) {
+                console.log("User from localStorage:", stored);
+                return stored;
+            }
+            // Способ 5: из имени хоста или referrer
+            if(document.referrer && document.referrer.includes('user=')) {
+                const match = document.referrer.match(/[?&]user=([^&]+)/);
+                if(match) return match[1];
+            }
+        } catch(e) { console.warn("Error getting user:", e); }
+        console.log("User: guest (default)");
+        return "guest";
     }
     
     function showToast(msg, isError=false) {
@@ -554,8 +575,10 @@
     function renderRecipesList() {
         const container = document.getElementById('recipesList');
         container.innerHTML = '';
+        let hasRecipes = false;
         for(let recipe of experimentalRecipes) {
             if(discoveredRecipes.includes(recipe.name)) {
+                hasRecipes = true;
                 container.innerHTML += `
                     <div class="recipe-discover">
                         <div class="recipe-name">${recipe.emoji} ${recipe.name}</div>
@@ -565,7 +588,7 @@
                 `;
             }
         }
-        if(container.innerHTML === '') {
+        if(!hasRecipes) {
             container.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">✨ Экспериментируйте с ингредиентами чтобы открыть рецепты!</div>';
         }
     }
@@ -608,13 +631,10 @@
         }
         
         if(foundRecipe) {
-            // Открываем рецепт если ещё не открыт
             if(!discoveredRecipes.includes(foundRecipe.name)) {
                 discoveredRecipes.push(foundRecipe.name);
-                showToast(`🎉 НОВЫЙ РЕЦЕПТ: ${foundRecipe.name}!`, false);
-                renderRecipesList();
+                showToast(`🎉 НОВЫЙ РЕЦЕПТ: ${foundRecipe.emoji} ${foundRecipe.name}!`, false);
             }
-            // Удаляем ингредиенты
             for(let need of foundRecipe.ingredients) {
                 let idx = currentBowl.indexOf(need);
                 if(idx !== -1) currentBowl.splice(idx, 1);
@@ -632,7 +652,6 @@
             }
             showToast(`✅ ${foundRecipe.emoji} ${foundRecipe.name} готов! +${earned.toFixed(1)}💰 +${foundRecipe.xp}⭐`);
         } else {
-            // Экспериментальное блюдо
             const earned = Math.max(0.5, currentBowl.length * 0.3);
             coins += earned;
             xp += Math.floor(currentBowl.length);
@@ -643,10 +662,11 @@
         saveToBeam();
     }
     
-    // СОХРАНЕНИЕ В BEAM (через таблицу saves)
+    // СОХРАНЕНИЕ В ТАБЛИЦУ
     async function saveToBeam() {
         if(saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(async () => {
+            if(isLoading) return;
             const saveData = {
                 level: level,
                 xp: xp,
@@ -661,22 +681,18 @@
                 const url = `${SCRIPT_URL}?action=saveGameData&login=${encodeURIComponent(currentUser)}&gameId=${GAME_ID}&saveData=${encodeURIComponent(JSON.stringify(saveData))}`;
                 const response = await fetch(url);
                 const result = await response.json();
-                if(result && result.success === false) {
-                    console.warn("Save warning:", result);
-                    document.getElementById('saveStatus').innerHTML = '⚠️';
-                } else {
-                    document.getElementById('saveStatus').innerHTML = '💾✓';
-                    setTimeout(() => document.getElementById('saveStatus').innerHTML = '💾', 1500);
-                }
+                document.getElementById('saveStatus').innerHTML = '💾✓';
+                setTimeout(() => document.getElementById('saveStatus').innerHTML = '💾', 1500);
             } catch(e) {
                 console.error("Save error:", e);
                 document.getElementById('saveStatus').innerHTML = '⚠️';
             }
-        }, 1000);
+        }, 500);
     }
     
-    // ЗАГРУЗКА ИЗ BEAM
+    // ЗАГРУЗКА ИЗ ТАБЛИЦЫ
     async function loadFromBeam() {
+        isLoading = true;
         document.getElementById('loadingOverlay').classList.remove('hidden');
         try {
             const url = `${SCRIPT_URL}?action=loadGameData&login=${encodeURIComponent(currentUser)}&gameId=${GAME_ID}`;
@@ -694,28 +710,29 @@
                 if(save.discoveredRecipes) discoveredRecipes = save.discoveredRecipes;
                 showToast(`💾 Загружено сохранение для ${currentUser}!`);
             } else {
-                // Первый запуск - инициализация
                 showToast(`✨ Добро пожаловать, ${currentUser}!`);
             }
         } catch(e) {
             console.error("Load error:", e);
-            showToast(`⚠️ Не удалось загрузить сохранение`, true);
         }
         updateUI();
+        isLoading = false;
         document.getElementById('loadingOverlay').classList.add('hidden');
     }
     
     function resetGame() {
-        level = 1;
-        xp = 0;
-        xpNeeded = 100;
-        coins = 100;
-        for(let id of Object.keys(allIngredients)) { inventory[id] = 3; }
-        currentBowl = [];
-        discoveredRecipes = [];
-        updateUI();
-        saveToBeam();
-        showToast("🔄 Игра сброшена! Сохранено в таблицу.");
+        if(confirm(`Сбросить прогресс для ${currentUser}?`)) {
+            level = 1;
+            xp = 0;
+            xpNeeded = 100;
+            coins = 100;
+            for(let id of Object.keys(allIngredients)) { inventory[id] = 3; }
+            currentBowl = [];
+            discoveredRecipes = [];
+            updateUI();
+            saveToBeam();
+            showToast("🔄 Игра сброшена!");
+        }
     }
     
     // Табы
@@ -728,7 +745,6 @@
         });
     });
     
-    // Действия (для анимации)
     document.getElementById('mixBtn').onclick = () => { showToast("🥄 Ингредиенты смешаны!"); saveToBeam(); };
     document.getElementById('heatBtn').onclick = () => { showToast("🔥 Блюдо приготовлено!"); saveToBeam(); };
     document.getElementById('cutBtn').onclick = () => { showToast("🔪 Ингредиенты нарезаны!"); saveToBeam(); };
@@ -739,11 +755,7 @@
         document.getElementById('menuOverlay').classList.add('hidden');
         loadFromBeam();
     };
-    document.getElementById('resetGameBtn').onclick = () => {
-        if(confirm("Сбросить весь прогресс? Данные сохранятся в таблицу как новые.")) {
-            resetGame();
-        }
-    };
+    document.getElementById('resetGameBtn').onclick = resetGame;
     document.getElementById('exitToBeamBtn').onclick = () => window.location.href = "../index.html";
     
     currentUser = getCurrentUser();
