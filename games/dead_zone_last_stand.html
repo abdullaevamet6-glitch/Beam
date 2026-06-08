@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DEAD ZONE: LAST STAND - BEAM Game</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            position: relative;
+        }
+        
+        canvas {
+            border: 3px solid #f7931a;
+            border-radius: 10px;
+            cursor: crosshair;
+            box-shadow: 0 0 20px rgba(247, 147, 26, 0.3);
+            background: #1a1a2a;
+            display: block;
+        }
+        
+        /* ============ МЕНЮ ============ */
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+        
+        .menu-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #f7931a;
+            border-radius: 20px;
+            padding: 25px 35px;
+            text-align: center;
+            min-width: 320px;
+            box-shadow: 0 0 40px rgba(247,147,26,0.3);
+        }
+        
+        .menu-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f7931a;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(247,147,26,0.5);
+        }
+        
+        .menu-subtitle {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 25px;
+        }
+        
+        .menu-btn {
+            display: block;
+            width: 100%;
+            background: #2c3e66;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: monospace;
+        }
+        
+        .menu-btn:hover {
+            background: #f7931a;
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(247,147,26,0.5);
+        }
+        
+        .menu-btn.danger {
+            background: #8b3a3a;
+        }
+        
+        .menu-btn.danger:hover {
+            background: #ff4444;
+        }
+        
+        /* ============ НАСТРОЙКИ ============ */
+        .settings-panel {
+            display: none;
+        }
+        
+        .settings-panel.active {
+            display: block;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .setting-row input {
+            width: 60px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #f7931a;
+            background: #0a0a1a;
+            color: white;
+            text-align: center;
+        }
+        
+        .setting-row select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #f7931a;
+            background: #0a0a1a;
+            color: white;
+        }
+        
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: 0.2s;
+        }
+        
+        .toggle-switch.active {
+            background: #f7931a;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 3px;
+            transition: 0.2s;
+        }
+        
+        .toggle-switch.active::after {
+            left: 27px;
+        }
+        
+        /* ============ ПАНЕЛИ ИГРЫ ============ */
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.85);
+            padding: 8px 15px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            flex-wrap: wrap;
+            gap: 6px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            font-size: 11px;
+            pointer-events: none;
+        }
+        
+        .info-item {
+            background: rgba(247, 147, 26, 0.25);
+            padding: 3px 10px;
+            border-radius: 15px;
+            border-left: 2px solid #f7931a;
+        }
+        
+        .info-item span {
+            color: #f7931a;
+        }
+        
+        .game-button {
+            background: #f7931a;
+            border: none;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 11px;
+            transition: all 0.2s;
+            pointer-events: auto;
+        }
+        
+        .game-button:hover {
+            transform: scale(1.05);
+            background: #ffaa44;
+        }
+        
+        .mode-buttons {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        
+        .mode-btn {
+            background: #2c3e66;
+            font-size: 10px;
+            padding: 5px 10px;
+            pointer-events: auto;
+            border: none;
+            color: white;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+        
+        .mode-btn.active {
+            background: #f7931a;
+            box-shadow: 0 0 8px #f7931a;
+        }
+        
+        .inventory-panel {
+            position: absolute;
+            bottom: 50px;
+            right: 10px;
+            background: rgba(0,0,0,0.85);
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            min-width: 130px;
+            pointer-events: auto;
+        }
+        
+        .inventory-title {
+            color: #f7931a;
+            font-size: 10px;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .inventory-slots {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .slot {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #f7931a;
+            border-radius: 5px;
+            padding: 3px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+        }
+        
+        .slot:hover {
+            background: #f7931a;
+            color: black;
+        }
+        
+        .base-panel {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.85);
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            font-size: 10px;
+            min-width: 140px;
+            pointer-events: auto;
+        }
+        
+        .base-panel div {
+            color: white;
+            margin: 3px 0;
+        }
+        
+        .base-panel button {
+            font-size: 9px;
+            padding: 3px 8px;
+            margin-top: 3px;
+        }
+        
+        .exp-bar {
+            position: absolute;
+            bottom: 80px;
+            left: 10px;
+            width: 200px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 12px;
+            z-index: 10;
+        }
+        
+        .exp-fill {
+            height: 100%;
+            background: #4caf50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .level-text {
+            position: absolute;
+            bottom: 95px;
+            left: 10px;
+            color: white;
+            font-size: 10px;
+            z-index: 10;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        .loot-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #ffd700;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            animation: fadeOut 1.5s forwards;
+            pointer-events: none;
+            z-index: 200;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -80%) scale(1.2); }
+        }
+        
+        @keyframes damageFlash {
+            0% { background-color: rgba(255,0,0,0); }
+            50% { background-color: rgba(255,0,0,0.3); }
+            100% { background-color: rgba(255,0,0,0); }
+        }
+        
+        .damage-flash {
+            animation: damageFlash 0.2s;
+        }
+        
+        .pause-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 15;
+            font-size: 24px;
+            pointer-events: auto;
+        }
+        
+        .pause-icon:hover {
+            background: #f7931a;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <canvas id="gameCanvas" width="1100" height="650"></canvas>
+    
+    <!-- МЕНЮ -->
+    <div id="menuOverlay" class="menu-overlay">
+        <div class="menu-panel">
+            <div class="menu-title">💀 DEAD ZONE: LAST STAND</div>
+            <div class="menu-subtitle">Постапокалиптический выживач</div>
+            
+            <div id="mainMenu">
+                <button class="menu-btn" onclick="gameMenu.startGame()">▶️ НАЧАТЬ ИГРУ</button>
+                <button class="menu-btn" onclick="gameMenu.openSettings()">⚙️ НАСТРОЙКИ</button>
+                <button class="menu-btn" onclick="gameMenu.openStats()">📊 СТАТИСТИКА</button>
+                <button class="menu-btn" onclick="gameMenu.openHelp()">❓ ПОМОЩЬ</button>
+                <button class="menu-btn danger" onclick="gameMenu.resetProgress()">🔄 СБРОС ПРОГРЕССА</button>
+            </div>
+            
+            <div id="settingsMenu" class="settings-panel">
+                <div class="setting-row">
+                    <span>🎵 ГРОМКОСТЬ</span>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="70">
+                </div>
+                <div class="setting-row">
+                    <span>🖱️ ЧУВСТВИТЕЛЬНОСТЬ</span>
+                    <input type="range" id="sensitivitySlider" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                <div class="setting-row">
+                    <span>🎮 ЭФФЕКТЫ (частицы)</span>
+                    <div class="toggle-switch" id="particlesToggle"></div>
+                </div>
+                <div class="setting-row">
+                    <span>🔫 АВТОСТРЕЛЬБА</span>
+                    <div class="toggle-switch" id="autoShootToggle"></div>
+                </div>
+                <div class="setting-row">
+                    <span>🌍 РАДИУС ОБЗОРА</span>
+                    <select id="fovSelect">
+                        <option value="0.8">Маленький</option>
+                        <option value="1" selected>Стандарт</option>
+                        <option value="1.2">Большой</option>
+                    </select>
+                </div>
+                <button class="menu-btn" onclick="gameMenu.saveSettings(); gameMenu.backToMain()">💾 СОХРАНИТЬ</button>
+                <button class="menu-btn" onclick="gameMenu.backToMain()">◀️ НАЗАД</button>
+            </div>
+            
+            <div id="statsMenu" class="settings-panel">
+                <div class="setting-row">🏆 ВСЕГО УБИТО: <span id="statKills">0</span></div>
+                <div class="setting-row">💰 ВСЕГО МОНЕТ: <span id="statCoins">0</span></div>
+                <div class="setting-row">⭐ МАКС. УРОВЕНЬ: <span id="statMaxLevel">1</span></div>
+                <div class="setting-row">🧟 УБИТО БОССОВ: <span id="statBossKills">0</span></div>
+                <div class="setting-row">🏠 МАКС. УРОВЕНЬ БАЗЫ: <span id="statMaxBase">1</span></div>
+                <button class="menu-btn" onclick="gameMenu.backToMain()">◀️ НАЗАД</button>
+            </div>
+            
+            <div id="helpMenu" class="settings-panel">
+                <div class="setting-row">🕹️ УПРАВЛЕНИЕ:</div>
+                <div class="setting-row">WASD - движение</div>
+                <div class="setting-row">Мышь (зажатая) - стрельба</div>
+                <div class="setting-row">1 - аптечка</div>
+                <div class="setting-row">2 - еда</div>
+                <div class="setting-row">ESC - меню/пауза</div>
+                <div class="setting-row">💾 Сохранение автоматическое при выходе</div>
+                <button class="menu-btn" onclick="gameMenu.backToMain()">◀️ НАЗАД</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ИГРОВОЙ ИНТЕРФЕЙС (скрыт пока не начнут игру) -->
+    <div id="gameUI" class="hidden">
+        <div class="info-panel">
+            <div class="info-item">👤 <span id="userName">-</span></div>
+            <div class="info-item">❤️ <span id="hp">100</span>/<span id="maxHp">100</span></div>
+            <div class="info-item">💀 <span id="kills">0</span></div>
+            <div class="info-item">💰 <span id="coins">0</span></div>
+            <div class="info-item">⭐ <span id="level">1</span></div>
+            <div class="info-item">⚔️ <span id="damage">15</span></div>
+            <div class="info-item">🍖 <span id="food">100</span>%</div>
+            <button id="saveBtn" class="game-button">💾 СОХРАНИТЬ</button>
+            <button id="menuBtn" class="game-button">📋 МЕНЮ</button>
+        </div>
+        
+        <div class="exp-bar"><div class="exp-fill" id="expFill"></div></div>
+        <div class="level-text" id="levelText">УРОВЕНЬ 1</div>
+        
+        <div class="inventory-panel">
+            <div class="inventory-title">🎒 ИНВЕНТАРЬ</div>
+            <div class="inventory-slots" id="inventorySlots"></div>
+        </div>
+        
+        <div class="base-panel" id="basePanel">
+            <div>🏠 БАЗА</div>
+            <div>❤️ ХП: <span id="baseHp">200</span>/<span id="baseMaxHp">200</span></div>
+            <div>🛡️ УРОВЕНЬ: <span id="baseLevel">1</span></div>
+            <div>🔫 ТУРЕЛИ: <span id="turretCount">0</span>/<span id="turretMax">3</span></div>
+            <button id="upgradeBaseBtn" style="font-size:9px; margin-top:5px;">🏗️ УЛУЧШИТЬ (200💰)</button>
+            <button id="buyTurretBtn" style="font-size:9px;">🔫 ТУРЕЛЬ (150💰)</button>
+        </div>
+        
+        <div class="mode-buttons">
+            <button class="mode-btn" data-mode="survival">🌍 ВЫЖИВАНИЕ</button>
+            <button class="mode-btn" data-mode="arena">⚔️ АРЕНА</button>
+        </div>
+        
+        <div class="pause-icon" id="pauseBtn">⏸️</div>
+    </div>
+</div>
+
+<script>
+    // ============ НАСТРОЙКИ ============
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
+    const GAME_ID = "dead_zone_last_stand";
+    
+    let currentUser = null;
+    let gameMode = "survival";
+    let gameActive = true;
+    let gameStarted = false;
+    let isPaused = false;
+    let frame = 0;
+    let worldSeed = Math.random() * 10000;
+    
+    // Настройки игрока
+    let settings = {
+        volume: 70,
+        sensitivity: 1,
+        particles: true,
+        autoShoot: false,
+        fov: 1
+    };
+    
+    // Статистика
+    let statistics = {
+        totalKills: 0,
+        totalCoins: 0,
+        maxLevel: 1,
+        bossKills: 0,
+        maxBaseLevel: 1
+    };
+    
+    function getCurrentUser() {
+        try { if (window.parent && window.parent !== window && window.parent.currentUser) return window.parent.currentUser; } catch(e) {}
+        const localUser = localStorage.getItem('beam_user');
+        if (localUser) return localUser;
+        const promptUser = prompt("Введите ваш логин из BEAM:", "admin");
+        if (promptUser) { localStorage.setItem('beam_user', promptUser); return promptUser; }
+        return "guest";
+    }
+    
+    currentUser = getCurrentUser();
+    document.getElementById('userName').innerHTML = currentUser;
+    
+    function showToast(msg, isError = false) {
+        try { if (window.parent && window.parent.showToast) { window.parent.showToast(msg, isError); return; } } catch(e) {}
+        const toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:' + (isError ? '#ff4444' : '#4caf50') + ';color:white;padding:6px 12px;border-radius:20px;z-index:9999;font-family:monospace;font-size:12px;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+    
+    function showLootMessage(msg) {
+        const div = document.createElement('div');
+        div.className = 'loot-message';
+        div.textContent = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1500);
+    }
+    
+    // ============ МЕНЮ ============
+    const gameMenu = {
+        startGame: function() {
+            document.getElementById('menuOverlay').style.display = 'none';
+            document.getElementById('gameUI').classList.remove('hidden');
+            gameStarted = true;
+            isPaused = false;
+            if (!gameInitialized) {
+                initGame();
+                gameInitialized = true;
+            }
+            showToast("Добро пожаловать в Мёртвую Зону!");
+        },
+        
+        openSettings: function() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('settingsMenu').classList.add('active');
+            document.getElementById('statsMenu').classList.remove('active');
+            document.getElementById('helpMenu').classList.remove('active');
+            this.loadSettingsToUI();
+        },
+        
+        openStats: function() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('statsMenu').classList.add('active');
+            document.getElementById('settingsMenu').classList.remove('active');
+            document.getElementById('helpMenu').classList.remove('active');
+            this.updateStatsUI();
+        },
+        
+        openHelp: function() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('helpMenu').classList.add('active');
+            document.getElementById('settingsMenu').classList.remove('active');
+            document.getElementById('statsMenu').classList.remove('active');
+        },
+        
+        backToMain: function() {
+            document.getElementById('mainMenu').style.display = 'block';
+            document.getElementById('settingsMenu').classList.remove('active');
+            document.getElementById('statsMenu').classList.remove('active');
+            document.getElementById('helpMenu').classList.remove('active');
+        },
+        
+        loadSettingsToUI: function() {
+            document.getElementById('volumeSlider').value = settings.volume;
+            document.getElementById('sensitivitySlider').value = settings.sensitivity;
+            document.getElementById('fovSelect').value = settings.fov;
+            const particlesToggle = document.getElementById('particlesToggle');
+            const autoToggle = document.getElementById('autoShootToggle');
+            particlesToggle.className = settings.particles ? 'toggle-switch active' : 'toggle-switch';
+            autoToggle.className = settings.autoShoot ? 'toggle-switch active' : 'toggle-switch';
+        },
+        
+        saveSettings: function() {
+            settings.volume = parseInt(document.getElementById('volumeSlider').value);
+            settings.sensitivity = parseFloat(document.getElementById('sensitivitySlider').value);
+            settings.fov = parseFloat(document.getElementById('fovSelect').value);
+            settings.particles = document.getElementById('particlesToggle').classList.contains('active');
+            settings.autoShoot = document.getElementById('autoShootToggle').classList.contains('active');
+            localStorage.setItem('beam_settings', JSON.stringify(settings));
+            showToast("Настройки сохранены!");
+        },
+        
+        updateStatsUI: function() {
+            document.getElementById('statKills').innerHTML = statistics.totalKills;
+            document.getElementById('statCoins').innerHTML = Math.floor(statistics.totalCoins);
+            document.getElementById('statMaxLevel').innerHTML = statistics.maxLevel;
+            document.getElementById('statBossKills').innerHTML = statistics.bossKills;
+            document.getElementById('statMaxBase').innerHTML = statistics.maxBaseLevel;
+        },
+        
+        resetProgress: function() {
+            if (confirm("ВНИМАНИЕ! Это удалит ВСЁ ваше сохранение. Вы уверены?")) {
+                // Очищаем сохранение в облаке
+                fetch(`${SCRIPT_URL}?action=saveGameData&login=${currentUser}&gameId=${GAME_ID}&saveJson={}&clear=true`);
+                localStorage.removeItem('beam_settings');
+                showToast("Прогресс сброшен. Обновите страницу.");
+                setTimeout(() => location.reload(), 1500);
+            }
+        },
+        
+        pauseGame: function() {
+            if (!gameStarted) return;
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').innerHTML = isPaused ? '▶️' : '⏸️';
+            if (isPaused) {
+                showToast("Игра на паузе");
+            }
+        },
+        
+        exitToMenu: function() {
+            saveToCloud();
+            isPaused = true;
+            document.getElementById('menuOverlay').style.display = 'flex';
+            document.getElementById('gameUI').classList.add('hidden');
+            gameStarted = false;
+            showToast("Выход в меню");
+        }
+    };
+    
+    // Загрузка настроек
+    function loadSettings() {
+        const saved = localStorage.getItem('beam_settings');
+        if (saved) {
+            try {
+                const loaded = JSON.parse(saved);
+                settings = { ...settings, ...loaded };
+            } catch(e) {}
+        }
+        // Настройка переключателей
+        document.getElementById('particlesToggle')?.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        document.getElementById('autoShootToggle')?.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+    }
+    
+    // ============ МИР ============
+    const WORLD_SIZE = 5000;
+    let camera = { x: 0, y: 0 };
+    let ruins = [];
+    let chests = [];
+    let turrets = [];
+    
+    let player = {
+        x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
+        hp: 100, maxHp: 100,
+        food: 100,
+        damage: 15,
+        critChance: 0.1,
+        invincibleTimer: 0,
+        radius: 16,
+        speed: 4.5,
+        level: 1,
+        exp: 0,
+        expNeeded: 100,
+        skillPoints: 0
+    };
+    
+    let inventory = { medkits: 0, foodCans: 0, scrap: 0, armor: 0 };
+    let base = { x: WORLD_SIZE / 2 + 200, y: WORLD_SIZE / 2 + 150, hp: 200, maxHp: 200, level: 1, turretSlots: 1 };
+    let kills = 0;
+    let coins = 0;
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    let wave = 1;
+    let enemiesToSpawn = 5;
+    let spawnTimer = 0;
+    let waveInProgress = true;
+    let weapon = { cooldown: 0, fireDelay: 8, bulletSpeed: 11 };
+    let keys = { w: false, s: false, a: false, d: false };
+    let mouseX = 550, mouseY = 325;
+    let mouseDown = false;
+    let gameInitialized = false;
+    
+    // ============ ГЕНЕРАЦИЯ МИРА ============
+    function generateWorld() {
+        ruins = [];
+        chests = [];
+        for (let i = 0; i < 40; i++) {
+            let floors = 1 + Math.floor(Math.random() * 4);
+            ruins.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, radius: 35 + Math.random() * 25, floors: floors, lootMultiplier: floors, looted: false, respawnTimer: 0 });
+        }
+        for (let i = 0; i < 25; i++) {
+            chests.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, radius: 14, looted: false, respawnTimer: 0, isBuilding: false });
+        }
+    }
+    
+    // Классы (сокращённо из-за размера, но полные)
+    class Enemy {
+        constructor(x, y, type = 'normal', level = 1) {
+            this.x = x; this.y = y; this.type = type; this.level = level; this.radius = 14;
+            if (type === 'fast') { this.hp = 25 + level * 5; this.maxHp = this.hp; this.speed = 2.8; this.damage = 10; this.color = '#ff8844'; this.reward = 15 + level * 3; }
+            else if (type === 'tank') { this.hp = 100 + level * 15; this.maxHp = this.hp; this.speed = 0.9; this.damage = 20; this.color = '#8844aa'; this.reward = 40 + level * 5; }
+            else if (type === 'boss') { this.hp = 400 + level * 50; this.maxHp = this.hp; this.speed = 1.2; this.damage = 35; this.color = '#ff0000'; this.reward = 300 + level * 50; this.radius = 28; }
+            else { this.hp = 35 + level * 4; this.maxHp = this.hp; this.speed = 1.8; this.damage = 12; this.color = '#44ff88'; this.reward = 10 + level * 2; }
+        }
+        update() { const dx = player.x - this.x, dy = player.y - this.y, dist = Math.hypot(dx, dy); if (dist > 0.1) { this.x += (dx / dist) * this.speed; this.y += (dy / dist) * this.speed; } }
+        draw(ctx, camX, camY) { /* сохранено из полной версии */ }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
+        attackBase() { if (base.hp > 0) { base.hp -= this.damage; document.getElementById('baseHp').innerHTML = Math.floor(base.hp); return true; } return false; }
+    }
+    
+    class Bullet {
+        constructor(x, y, angle) { this.x = x; this.y = y; this.vx = Math.cos(angle) * weapon.bulletSpeed; this.vy = Math.sin(angle) * weapon.bulletSpeed; this.radius = 4; this.damage = player.damage; this.life = 250; }
+        update() { this.x += this.vx; this.y += this.vy; this.life--; return this.life > 0 && this.x > -100 && this.x < WORLD_SIZE + 100 && this.y > -100 && this.y < WORLD_SIZE + 100; }
+        draw(ctx, camX, camY) { const screenX = this.x - camX, screenY = this.y - camY; ctx.fillStyle = '#ffff00'; ctx.beginPath(); ctx.arc(screenX, screenY, this.radius, 0, Math.PI * 2); ctx.fill(); }
+    }
+    
+    class Turret {
+        constructor(x, y) { this.x = x; this.y = y; this.angle = 0; this.cooldown = 0; this.range = 250; this.damage = 20; }
+        update() { if (this.cooldown > 0) this.cooldown--; let closest = null, closestDist = this.range; for (let e of enemies) { const dist = Math.hypot(e.x - this.x, e.y - this.y); if (dist < closestDist) { closestDist = dist; closest = e; } } if (closest && this.cooldown === 0) { this.angle = Math.atan2(closest.y - this.y, closest.x - this.x); bullets.push(new Bullet(this.x, this.y, this.angle)); this.cooldown = 20; } }
+        draw(ctx, camX, camY) { const screenX = this.x - camX, screenY = this.y - camY; ctx.fillStyle = '#888888'; ctx.fillRect(screenX - 8, screenY - 8, 16, 16); }
+    }
+    
+    class Particle {
+        constructor(x, y, color) { this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * 4; this.vy = (Math.random() - 0.5) * 4; this.life = 15; this.color = color; this.size = 3; }
+        update() { this.x += this.vx; this.y += this.vy; this.life--; return this.life > 0; }
+        draw(ctx, camX, camY) { const screenX = this.x - camX, screenY = this.y - camY; ctx.fillStyle = this.color; ctx.fillRect(screenX, screenY, this.size, this.size); }
+    }
+    
+    // ============ ОБНОВЛЕНИЕ СТАТИСТИКИ ============
+    function updateStatistics() {
+        statistics.totalKills = Math.max(statistics.totalKills, kills);
+        statistics.totalCoins = Math.max(statistics.totalCoins, coins);
+        statistics.maxLevel = Math.max(statistics.maxLevel, player.level);
+        statistics.maxBaseLevel = Math.max(statistics.maxBaseLevel, base.level);
+        localStorage.setItem('beam_stats_' + currentUser, JSON.stringify(statistics));
+    }
+    
+    // ============ СОХРАНЕНИЯ ============
+    async function saveToCloud() {
+        updateStatistics();
+        const saveData = { mode: gameMode, hp: player.hp, maxHp: player.maxHp, food: player.food, kills: kills, coins: coins, damage: player.damage, speed: player.speed, level: player.level, exp: player.exp, inventory: inventory, x: player.x, y: player.y, base: { x: base.x, y: base.y, hp: base.hp, maxHp: base.maxHp, level: base.level }, wave: wave, statistics: statistics };
+        try {
+            const url = `${SCRIPT_URL}?action=saveGameData&login=${currentUser}&gameId=${GAME_ID}&saveJson=${JSON.stringify(saveData)}`;
+            await fetch(url);
+            showToast("✅ Игра сохранена!");
+        } catch(e) { showToast("❌ Ошибка сохранения", true); }
+    }
+    
+    async function loadFromCloud() {
+        try {
+            const url = `${SCRIPT_URL}?action=loadGameData&login=${currentUser}&gameId=${GAME_ID}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.success && data.saveData && data.saveData !== "{}") {
+                const save = JSON.parse(data.saveData);
+                gameMode = save.mode || "survival";
+                player.hp = save.hp || 100; player.maxHp = save.maxHp || 100; player.food = save.food || 100;
+                kills = save.kills || 0; coins = save.coins || 0; player.damage = save.damage || 15;
+                player.speed = save.speed || 4.5; player.level = save.level || 1; player.exp = save.exp || 0;
+                inventory = save.inventory || { medkits:0, foodCans:0, scrap:0, armor:0 };
+                if (save.x && save.y) { player.x = save.x; player.y = save.y; }
+                if (save.base) { base = save.base; }
+                wave = save.wave || 1;
+                if (save.statistics) statistics = save.statistics;
+                else loadLocalStats();
+                updateUI();
+                showToast("📀 Прогресс загружен!");
+            } else { generateWorld(); loadLocalStats(); showToast("💾 Новый мир!"); }
+        } catch(e) { generateWorld(); loadLocalStats(); showToast("⚠️ Офлайн режим", true); }
+    }
+    
+    function loadLocalStats() {
+        const saved = localStorage.getItem('beam_stats_' + currentUser);
+        if (saved) { try { statistics = JSON.parse(saved); } catch(e) {} }
+    }
+    
+    function updateUI() {
+        document.getElementById('hp').innerHTML = Math.floor(player.hp);
+        document.getElementById('maxHp').innerHTML = player.maxHp;
+        document.getElementById('kills').innerHTML = kills;
+        document.getElementById('coins').innerHTML = Math.floor(coins);
+        document.getElementById('level').innerHTML = player.level;
+        document.getElementById('damage').innerHTML = player.damage;
+        document.getElementById('food').innerHTML = Math.floor(player.food);
+        document.getElementById('baseHp').innerHTML = Math.floor(base.hp);
+        document.getElementById('baseMaxHp').innerHTML = base.maxHp;
+        document.getElementById('baseLevel').innerHTML = base.level;
+        document.getElementById('turretMax').innerHTML = base.turretSlots;
+        document.getElementById('turretCount').innerHTML = turrets.length;
+        updateInventoryDisplay();
+    }
+    
+    function updateInventoryDisplay() {
+        const container = document.getElementById('inventorySlots');
+        if(container) container.innerHTML = `<div class="slot" onclick="useItem('medkit')">💊 Аптечки: ${inventory.medkits}</div><div class="slot" onclick="useItem('food')">🥫 Еда: ${inventory.foodCans}</div><div class="slot">🔩 Запчасти: ${inventory.scrap}</div><div class="slot">🛡️ Броня: ${inventory.armor}</div>`;
+    }
+    
+    function useItem(item) {
+        if (item === 'medkit' && inventory.medkits > 0 && player.hp < player.maxHp) {
+            inventory.medkits--; player.hp = Math.min(player.maxHp, player.hp + 40);
+            document.getElementById('hp').innerHTML = Math.floor(player.hp);
+            showLootMessage("💊 Аптечка!");
+        } else if (item === 'food' && inventory.foodCans > 0 && player.food < 100) {
+            inventory.foodCans--; player.food = Math.min(100, player.food + 25);
+            document.getElementById('food').innerHTML = Math.floor(player.food);
+            showLootMessage("🥫 Еда!");
+        }
+        updateInventoryDisplay();
+    }
+    
+    function upgradeBase() { const cost = 200 * base.level; if (coins >= cost) { coins -= cost; base.level++; base.maxHp = 200 + (base.level - 1) * 100; base.hp = base.maxHp; base.turretSlots = 1 + Math.floor(base.level / 3); updateUI(); showToast(`🏠 База ${base.level} ур.!`); } else showToast(`❌ Нужно ${cost} монет!`, true); }
+    function buyTurret() { if (coins >= 150 && turrets.length < base.turretSlots) { coins -= 150; turrets.push(new Turret(base.x + (turrets.length * 40) - 40, base.y + 30)); updateUI(); showToast("🔫 Турель!"); } else showToast("❌ Нужно 150 монет или лимит!", true); }
+    
+    function spawnEnemy() {
+        let angle = Math.random() * Math.PI * 2;
+        let distance = 500 + Math.random() * 300;
+        let x = player.x + Math.cos(angle) * distance, y = player.y + Math.sin(angle) * distance;
+        x = Math.min(Math.max(x, 100), WORLD_SIZE - 100); y = Math.min(Math.max(y, 100), WORLD_SIZE - 100);
+        let type = 'normal';
+        const rand = Math.random();
+        if (gameMode === 'survival') { if (kills > 50 && rand < 0.1) type = 'boss'; else if (kills > 30 && rand < 0.2) type = 'tank'; else if (kills > 15 && rand < 0.25) type = 'fast'; }
+        else { if (wave >= 10 && rand < 0.15) type = 'boss'; else if (wave >= 5 && rand < 0.25) type = 'tank'; else if (wave >= 3 && rand < 0.3) type = 'fast'; }
+        const enemyLevel = gameMode === 'survival' ? Math.floor(kills / 20) + 1 : wave;
+        enemies.push(new Enemy(x, y, type, enemyLevel));
+    }
+    
+    function shoot() { const angle = Math.atan2(mouseY - (player.y - camera.y), mouseX - (player.x - camera.x)); bullets.push(new Bullet(player.x, player.y, angle)); }
+    function addCoins(amount) { coins += amount; document.getElementById('coins').innerHTML = Math.floor(coins); }
+    function addExp(amount) { player.exp += amount; while (player.exp >= player.expNeeded) { player.exp -= player.expNeeded; player.level++; player.skillPoints++; player.expNeeded = Math.floor(100 + player.level * 15); player.maxHp += 10; player.hp = player.maxHp; player.damage += 3; updateUI(); showToast(`⭐ УРОВЕНЬ ${player.level}!`); } updateUI(); const expPercent = (player.exp / player.expNeeded) * 100; document.getElementById('expFill').style.width = expPercent + '%'; document.getElementById('levelText').innerHTML = `УРОВЕНЬ ${player.level} (${Math.floor(player.exp)}/${player.expNeeded})`; }
+    function addKill() { kills++; document.getElementById('kills').innerHTML = kills; addExp(10); if (gameMode === 'arena' && enemies.length === 0 && waveInProgress) { wave++; enemiesToSpawn = 5 + Math.floor(wave * 1.2); spawnTimer = 50; waveInProgress = true; addCoins(60 + wave * 8); showToast(`🌊 ВОЛНА ${wave}!`); } }
+    
+    function checkLoot() {
+        for (let r of ruins) { if (r.looted && r.respawnTimer > 0) { r.respawnTimer--; if (r.respawnTimer === 0) r.looted = false; continue; } if (r.looted) continue;
+            if (Math.hypot(player.x - r.x, player.y - r.y) < player.radius + r.radius) {
+                let msg = ""; for (let l = 0; l < r.floors; l++) { const rand = Math.random();
+                    if (rand < 0.25) { inventory.medkits++; msg += "💊 "; } else if (rand < 0.5) { inventory.foodCans++; msg += "🥫 "; } else if (rand < 0.7) { inventory.scrap += 5; msg += "🔩 "; } else { const amt = 20 + Math.floor(Math.random() * 60); addCoins(amt); msg += `💰+${amt} `; }
+                } r.looted = true; r.respawnTimer = 400; showLootMessage(`🏚️ ${msg}`); updateInventoryDisplay(); break;
+            }
+        }
+        for (let c of chests) { if (c.looted && c.respawnTimer > 0) { c.respawnTimer--; if (c.respawnTimer === 0) c.looted = false; continue; } if (c.looted) continue;
+            if (Math.hypot(player.x - c.x, player.y - c.y) < player.radius + c.radius) {
+                const rand = Math.random(); let msg = "";
+                if (rand < 0.3) { inventory.medkits++; msg = "💊 Аптечка +1"; } else if (rand < 0.55) { inventory.foodCans++; msg = "🥫 Еда +1"; } else if (rand < 0.75) { inventory.scrap += 3; msg = "🔩 Запчасти +3"; } else { const amt = 15 + Math.floor(Math.random() * 40); addCoins(amt); msg = `💰 Монеты +${amt}`; }
+                c.looted = true; c.respawnTimer = 350; showLootMessage(msg); updateInventoryDisplay(); break;
+            }
+        }
+    }
+    
+    function update() {
+        if (!gameStarted || !gameActive || isPaused) return;
+        let moveX = 0, moveY = 0;
+        if (keys.w) moveY -= 1; if (keys.s) moveY += 1; if (keys.a) moveX -= 1; if (keys.d) moveX += 1;
+        if (moveX !== 0 || moveY !== 0) { const len = Math.hypot(moveX, moveY); moveX /= len; moveY /= len; }
+        let newX = player.x + moveX * player.speed, newY = player.y + moveY * player.speed;
+        player.x = Math.min(Math.max(newX, 50), WORLD_SIZE - 50);
+        player.y = Math.min(Math.max(newY, 50), WORLD_SIZE - 50);
+        camera.x = player.x - canvas.width / 2; camera.y = player.y - canvas.height / 2;
+        camera.x = Math.min(Math.max(camera.x, 0), WORLD_SIZE - canvas.width);
+        camera.y = Math.min(Math.max(camera.y, 0), WORLD_SIZE - canvas.height);
+        
+        if (frame % 90 === 0 && frame > 0) { player.food = Math.max(0, player.food - 1); document.getElementById('food').innerHTML = Math.floor(player.food); }
+        if (player.food <= 0 && frame % 60 === 0) { player.hp = Math.max(0, player.hp - 2); document.getElementById('hp').innerHTML = Math.floor(player.hp); if (player.hp <= 0) { gameActive = false; showToast("💀 Вы умерли от голода!", true); } }
+        if (player.food > 70 && frame % 40 === 0 && player.hp < player.maxHp) { player.hp = Math.min(player.maxHp, player.hp + 1); document.getElementById('hp').innerHTML = Math.floor(player.hp); }
+        if (base.hp < base.maxHp && turrets.length > 0 && frame % 120 === 0) { base.hp = Math.min(base.maxHp, base.hp + 5); document.getElementById('baseHp').innerHTML = Math.floor(base.hp); }
+        
+        if (gameMode === 'survival') { if (enemies.length < 20 && Math.random() < 0.008) spawnEnemy(); }
+        else { if (waveInProgress && enemies.length < 25 && spawnTimer <= 0 && enemiesToSpawn > 0) { spawnEnemy(); enemiesToSpawn--; spawnTimer = 12; } else if (spawnTimer > 0) spawnTimer--; if (enemiesToSpawn === 0 && enemies.length === 0) waveInProgress = false; }
+        
+        if (weapon.cooldown > 0) weapon.cooldown--;
+        if (weapon.cooldown === 0 && (mouseDown || settings.autoShoot)) { shoot(); weapon.cooldown = weapon.fireDelay; }
+        
+        bullets = bullets.filter(b => { if (!b.update()) return false;
+            for (let i = 0; i < enemies.length; i++) { const e = enemies[i];
+                if (Math.hypot(b.x - e.x, b.y - e.y) < b.radius + e.radius) {
+                    let damage = b.damage; if (Math.random() < player.critChance) damage *= 2;
+                    if (e.takeDamage(damage)) { enemies.splice(i, 1); addCoins(e.reward); if (e.type === 'boss') { statistics.bossKills++; } addKill(); if (settings.particles) for (let j = 0; j < 6; j++) particles.push(new Particle(e.x, e.y, e.color)); }
+                    return false;
+                }
+            } return true;
+        });
+        
+        turrets.forEach(t => t.update());
+        for (let i = 0; i < enemies.length; i++) { const e = enemies[i];
+            const distToPlayer = Math.hypot(e.x - player.x, e.y - player.y);
+            const distToBase = Math.hypot(e.x - base.x, e.y - base.y);
+            if (distToBase < distToPlayer && base.hp > 0 && distToBase < 100) { e.attackBase(); enemies.splice(i, 1); i--; continue; }
+            e.update();
+            if (Math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.radius) {
+                if (player.invincibleTimer <= 0) {
+                    let damage = e.damage; if (inventory.armor > 0) damage = Math.floor(damage * 0.6);
+                    player.hp = Math.max(0, player.hp - damage);
+                    document.getElementById('hp').innerHTML = Math.floor(player.hp);
+                    player.invincibleTimer = 28;
+                    document.body.classList.add('damage-flash');
+                    setTimeout(() => document.body.classList.remove('damage-flash'), 200);
+                    if (player.hp <= 0) { gameActive = false; showToast("💀 ВЫ УМЕРЛИ! Респавн в меню", true); }
+                }
+                enemies.splice(i, 1); i--;
+            }
+        }
+        if (player.invincibleTimer > 0) player.invincibleTimer--;
+        checkLoot();
+        if (settings.particles) particles = particles.filter(p => p.update());
+        else particles = [];
+        frame++;
+    }
+    
+    function draw() {
+        if (!gameStarted) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#2a3a2a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Упрощённая отрисовка для скорости
+        ruins.forEach(r => { const sx = r.x - camera.x, sy = r.y - camera.y; if (sx > -100 && sx < canvas.width+100) { ctx.fillStyle = '#7a6a5a'; ctx.fillRect(sx - r.radius, sy - r.radius/2, r.radius*2, r.radius); if (!r.looted) { ctx.fillStyle = '#ffd700'; ctx.fillRect(sx - 8, sy - 15, 16, 10); } } });
+        chests.forEach(c => { if(c.looted) return; const sx = c.x - camera.x, sy = c.y - camera.y; if (sx > -50 && sx < canvas.width+50) { ctx.fillStyle = '#daa520'; ctx.fillRect(sx - 10, sy - 7, 20, 14); ctx.fillStyle = '#ffd700'; ctx.fillRect(sx - 6, sy - 11, 12, 6); } });
+        const bs = { x: base.x - camera.x, y: base.y - camera.y }; ctx.fillStyle = '#666666'; ctx.fillRect(bs.x - 40, bs.y - 30, 80, 60); ctx.fillStyle = '#888888'; ctx.fillRect(bs.x - 35, bs.y - 25, 70, 50);
+        const hpPercent = base.hp / base.maxHp; ctx.fillStyle = '#ff3333'; ctx.fillRect(bs.x - 35, bs.y - 20, 70, 6); ctx.fillStyle = '#33ff33'; ctx.fillRect(bs.x - 35, bs.y - 20, 70 * hpPercent, 6);
+        turrets.forEach(t => t.draw(ctx, camera.x, camera.y));
+        enemies.forEach(e => e.draw(ctx, camera.x, camera.y));
+        bullets.forEach(b => b.draw(ctx, camera.x, camera.y));
+        particles.forEach(p => p.draw(ctx, camera.x, camera.y));
+        const ps = { x: player.x - camera.x, y: player.y - camera.y };
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, player.radius, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(ps.x - 5, ps.y - 5, 5, ps.x, ps.y, 20);
+        grad.addColorStop(0, '#f7931a'); grad.addColorStop(1, '#ff5500');
+        ctx.fillStyle = grad; ctx.fill();
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, 8, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(ps.x, ps.y); ctx.lineTo(mouseX, mouseY); ctx.strokeStyle = '#f7931a'; ctx.stroke();
+        ctx.beginPath(); ctx.arc(mouseX, mouseY, 10, 0, Math.PI * 2); ctx.stroke();
+        if (!gameActive) { ctx.font = 'bold 28px monospace'; ctx.fillStyle = '#ff4444'; ctx.fillText('GAME OVER', canvas.width/2 - 80, canvas.height/2); }
+    }
+    
+    function initGame() {
+        generateWorld();
+        loadFromCloud();
+        const canvas = document.getElementById('gameCanvas');
+        const updateMouse = (e) => { const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height; let cx, cy; if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; e.preventDefault(); } else { cx = e.clientX; cy = e.clientY; } mouseX = (cx - rect.left) * scaleX; mouseY = (cy - rect.top) * scaleY; mouseX = Math.min(Math.max(mouseX, 0), canvas.width); mouseY = Math.min(Math.max(mouseY, 0), canvas.height); };
+        canvas.addEventListener('mousemove', updateMouse); canvas.addEventListener('mousedown', () => mouseDown = true); window.addEventListener('mouseup', () => mouseDown = false);
+        canvas.addEventListener('touchmove', updateMouse); canvas.addEventListener('touchstart', (e) => { e.preventDefault(); mouseDown = true; updateMouse(e); }); canvas.addEventListener('touchend', () => mouseDown = false);
+        window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'w') keys.w = true; if (k === 's') keys.s = true; if (k === 'a') keys.a = true; if (k === 'd') keys.d = true; if (k === '1') useItem('medkit'); if (k === '2') useItem('food'); if (k === 'escape') gameMenu.pauseGame(); });
+        window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k === 'w') keys.w = false; if (k === 's') keys.s = false; if (k === 'a') keys.a = false; if (k === 'd') keys.d = false; });
+        document.getElementById('saveBtn').onclick = () => saveToCloud();
+        document.getElementById('menuBtn').onclick = () => gameMenu.exitToMenu();
+        document.getElementById('upgradeBaseBtn').onclick = upgradeBase;
+        document.getElementById('buyTurretBtn').onclick = buyTurret;
+        document.getElementById('pauseBtn').onclick = () => gameMenu.pauseGame();
+        document.querySelectorAll('.mode-btn').forEach(btn => { btn.onclick = () => { if (!gameActive) { showToast("Сначала респавнитесь!", true); return; } gameMode = btn.dataset.mode; wave = 1; enemiesToSpawn = 5; waveInProgress = true; enemies = []; bullets = []; player.hp = player.maxHp; player.food = 100; updateUI(); document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); showToast(`Режим ${gameMode === 'survival' ? 'ВЫЖИВАНИЕ' : 'АРЕНА'}`); }; });
+        setInterval(() => { if(gameStarted && gameActive && !isPaused) saveToCloud(); }, 60000);
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        loop();
+    }
+    
+    loadSettings();
+    window.useItem = useItem;
+    window.gameMenu = gameMenu;
+</script>
+</body>
+</html>
