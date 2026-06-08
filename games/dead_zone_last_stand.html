@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>DEAD ZONE: LAST STAND - ФИНАЛ</title>
+    <title>DEAD ZONE: LAST STAND - РАБОЧИЙ СУНДУК</title>
     <style>
         * { user-select: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { margin: 0; min-height: 100vh; background: #0a0a0a; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', monospace; overflow: hidden; }
@@ -51,10 +51,20 @@
         .skill-btn:hover { background: #f7931a; }
         .has-save { border: 2px solid #ffd700; box-shadow: 0 0 10px #ffd700; animation: savePulse 1s infinite; }
         @keyframes savePulse { 0% { box-shadow: 0 0 0 0 #ffd700; } 50% { box-shadow: 0 0 0 5px rgba(255,215,0,0.3); } 100% { box-shadow: 0 0 0 0 #ffd700; } }
-        .craft-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #f7931a; border-radius: 15px; padding: 20px; z-index: 50; min-width: 300px; text-align: center; display: none; }
+        .craft-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #f7931a; border-radius: 15px; padding: 20px; z-index: 50; min-width: 400px; text-align: center; display: none; }
         .craft-panel.active { display: block; }
         .craft-btn { background: #2c3e66; color: white; border: none; padding: 8px; margin: 5px; border-radius: 8px; cursor: pointer; width: 100%; }
         .craft-btn:hover { background: #f7931a; }
+        .direction-panel { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); border: 2px solid #f7931a; border-radius: 15px; padding: 15px; z-index: 60; display: none; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .direction-btn { background: #2c3e66; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-size: 18px; width: 50px; }
+        .direction-btn:hover { background: #f7931a; }
+        .chest-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 2px solid #f7931a; border-radius: 15px; padding: 20px; z-index: 200; min-width: 320px; text-align: center; display: none; flex-direction: column; gap: 15px; }
+        .chest-panel.active { display: flex; }
+        .chest-panel button { margin: 5px; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; border: none; }
+        .take-btn { background: #2c3e66; color: white; }
+        .take-btn:hover { background: #4caf50; }
+        .close-btn { background: #8b3a3a; color: white; }
+        .close-btn:hover { background: #ff4444; }
     </style>
 </head>
 <body>
@@ -64,7 +74,7 @@
     <div id="menuOverlay" class="menu-overlay">
         <div id="mainMenuPanel" class="menu-panel">
             <div class="menu-title">💀 DEAD ZONE: LAST STAND</div>
-            <div class="menu-subtitle">ФИНАЛЬНАЯ ВЕРСИЯ</div>
+            <div class="menu-subtitle">РАБОЧАЯ ВЕРСИЯ</div>
             <button class="menu-btn" id="continueGameBtn">▶️ ПРОДОЛЖИТЬ ИГРУ</button>
             <button class="menu-btn" id="newGameBtn">🆕 НОВАЯ ИГРА</button>
             <button class="menu-btn" id="settingsMenuBtn">⚙️ НАСТРОЙКИ</button>
@@ -99,8 +109,9 @@
             <div class="setting-row">WASD / ЦФЫВ - движение</div>
             <div class="setting-row">Мышь (зажатая) - стрельба</div>
             <div class="setting-row">1 - аптечка | 2 - еда | Q - способность</div>
-            <div class="setting-row">C - открыть верстак | G - навыки</div>
-            <div class="setting-row">ESC - меню паузы</div>
+            <div class="setting-row">C - открыть КРАФТ | V - открыть ВЕРСТАК</div>
+            <div class="setting-row">B - режим строительства | G - навыки</div>
+            <div class="setting-row">ESC - меню</div>
             <button class="menu-btn" id="backToMainFromHelp">◀️ НАЗАД</button>
         </div>
     </div>
@@ -113,11 +124,14 @@
             <div class="info-item">💰 <span id="coins">500</span></div>
             <div class="info-item">⭐ <span id="level">1</span></div>
             <div class="info-item">⚔️ <span id="damage">15</span></div>
+            <div class="info-item">🪓 <span id="axeLevel">Деревянный</span></div>
             <div class="info-item" id="foodItem">🍖 <span id="food">100</span>%</div>
             <div class="info-item">🪵 <span id="wood">0</span></div>
-            <div class="info-item">🔩 <span id="scrap">30</span></div>
+            <div class="info-item">⚙️ <span id="metal">0</span></div>
             <button id="saveBtn" class="game-button">💾 СОХРАНИТЬ</button>
-            <button id="craftBtn" class="game-button">🔨 ВЕРСТАК (C)</button>
+            <button id="craftBtn" class="game-button">🔨 КРАФТ (C)</button>
+            <button id="workbenchBtn" class="game-button">🛠️ ВЕРСТАК (V)</button>
+            <button id="buildModeBtn" class="game-button">🏗️ СТРОЙКА (B)</button>
             <button id="skillTreeBtn" class="game-button">⭐ НАВЫКИ</button>
         </div>
         <div class="exp-bar"><div class="exp-fill" id="expFill"></div></div>
@@ -136,6 +150,10 @@
             <div class="inventory-title">🎒 ИНВЕНТАРЬ</div>
             <div id="inventorySlots"></div>
         </div>
+        <div id="structuresPanel" class="base-panel" style="bottom:10px; right:200px; min-width:200px;">
+            <div>🏗️ ПОСТРОЙКИ</div>
+            <div id="structuresList"></div>
+        </div>
         <div id="basePanelContainer"></div>
         <div class="mode-buttons">
             <button class="mode-btn" data-mode="survival">🌍 ВЫЖИВАНИЕ</button>
@@ -148,15 +166,46 @@
     </div>
     
     <div id="craftPanel" class="craft-panel">
-        <div style="color:#f7931a; font-size:18px; margin-bottom:10px;">🔨 ВЕРСТАК</div>
-        <div style="color:#aaa; font-size:12px; margin-bottom:10px;">Дерево: <span id="craftWood">0</span> | Металл: <span id="craftScrap">0</span></div>
-        <button class="craft-btn" data-craft="woodWall">🪵 Деревянная стена (10 дерева)</button>
-        <button class="craft-btn" data-craft="stoneWall">🪨 Каменная стена (20 камня)</button>
-        <button class="craft-btn" data-craft="metalWall">⚙️ Металлическая стена (30 металла)</button>
-        <button class="craft-btn" data-craft="turretUpgrade">🔫 Улучшение турели (50 металла)</button>
-        <button class="craft-btn" data-craft="repairKit">🔧 Ремкомплект (30 дерева, 20 металла)</button>
-        <button class="craft-btn" data-craft="axe">🪓 Топор (25 дерева, 10 металла)</button>
+        <div style="color:#f7931a; font-size:18px; margin-bottom:10px;">🔨 КРАФТ</div>
+        <div style="color:#aaa; font-size:12px; margin-bottom:10px;">Дерево: <span id="craftWood">0</span> | Металл: <span id="craftMetal">0</span> | Камень: <span id="craftStone">0</span></div>
+        <button class="craft-btn" data-craft="woodWall">🪵 Деревянная стена (10 дер, 5 кам)</button>
+        <button class="craft-btn" data-craft="stoneWall">🪨 Каменная стена (15 кам, 5 дер)</button>
+        <button class="craft-btn" data-craft="metalWall">⚙️ Металлическая стена (20 мет, 5 дер)</button>
+        <button class="craft-btn" data-craft="farm">🌾 Ферма (30 дер, 10 мет)</button>
+        <button class="craft-btn" data-craft="generator">⚡ Генератор (40 мет, 20 кам)</button>
+        <button class="craft-btn" data-craft="storage">📦 Склад (20 дер, 10 мет)</button>
+        <button class="craft-btn" data-craft="chest">📦 Сундук (15 дер, 5 мет)</button>
+        <button class="craft-btn" data-craft="repairKit">🔧 Ремкомплект (30 дер, 20 мет)</button>
         <button class="craft-btn" data-craft="closeCraft">❌ ЗАКРЫТЬ</button>
+    </div>
+    
+    <div id="workbenchPanel" class="craft-panel">
+        <div style="color:#f7931a; font-size:18px; margin-bottom:10px;">🛠️ ВЕРСТАК УР. <span id="workbenchLevel">1</span></div>
+        <div style="color:#aaa; font-size:12px; margin-bottom:10px;">Дерево: <span id="wbWood">0</span> | Металл: <span id="wbMetal">0</span> | Камень: <span id="wbStone">0</span></div>
+        <div id="workbenchRecipes"></div>
+        <button class="craft-btn" data-craft="upgradeWorkbench">⬆️ УЛУЧШИТЬ ВЕРСТАК (100 мет, 50 кам, 30 дер)</button>
+        <button class="craft-btn" data-craft="closeWorkbench">❌ ЗАКРЫТЬ</button>
+    </div>
+    
+    <div id="directionPanel" class="direction-panel">
+        <button class="direction-btn" data-dir="0">⬆️</button>
+        <button class="direction-btn" data-dir="1">➡️</button>
+        <button class="direction-btn" data-dir="2">⬇️</button>
+        <button class="direction-btn" data-dir="3">⬅️</button>
+        <button class="direction-btn" data-dir="4">↖️</button>
+        <button class="direction-btn" data-dir="5">↗️</button>
+        <button class="direction-btn" data-dir="6">↙️</button>
+        <button class="direction-btn" data-dir="7">↘️</button>
+        <button class="direction-btn" data-dir="cancel">❌</button>
+    </div>
+    
+    <div id="chestPanel" class="chest-panel">
+        <div style="color:#f7931a; font-size:18px; margin-bottom:10px;">📦 СУНДУК</div>
+        <div id="chestItems" style="color:white; margin-bottom:10px; max-height:300px; overflow-y:auto;"></div>
+        <div style="display:flex; gap:15px; justify-content:center; margin-top:10px;">
+            <button id="takeAllBtn" class="take-btn">📥 ЗАБРАТЬ ВСЁ</button>
+            <button id="closeChestBtn" class="close-btn">❌ ЗАКРЫТЬ</button>
+        </div>
     </div>
     
     <div id="skillTree" class="skill-tree">
@@ -171,7 +220,8 @@
             <button class="skill-btn" data-skill="regen">💚 РЕГЕН: +1/сек</button>
             <button class="skill-btn" data-skill="loot">💰 ЛУТ: +15%</button>
             <button class="skill-btn" data-skill="vampire">🧛 ВАМПИРИЗМ: 5%</button>
-            <button class="skill-btn" data-skill="builder">🏗️ СТРОИТЕЛЬ: стены +20% HP</button>
+            <button class="skill-btn" data-skill="builder">🏗️ СТРОИТЕЛЬ: стены +30% HP</button>
+            <button class="skill-btn" data-skill="lumberjack">🪓 ДРОВОСЕК: +20% урона по деревьям</button>
         </div>
         <button class="menu-btn" id="closeSkillTree">ЗАКРЫТЬ</button>
     </div>
@@ -179,7 +229,7 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
-    const GAME_ID = "dead_zone_final_release";
+    const GAME_ID = "dead_zone_working_chest";
     
     let currentUser = null;
     let gameMode = "survival";
@@ -193,14 +243,20 @@
     let robot = null;
     let lastFoodWarning = 0;
     let hasExistingSave = false;
-    let baseDestroyed = false;
+    let buildMode = false;
+    let pendingCraft = null;
+    let workbenchLevel = 1;
+    let axeLevel = 1;
+    let axeDamage = 15;
+    let currentOpenChest = null;
     
     let settings = { particles: true, autoShoot: false };
     let statistics = { totalKills: 0, totalCoins: 0, maxLevel: 1, bossKills: 0, bestWave: 1 };
-    let skills = { warrior:0, tank:0, speed:0, crit:0, fireRate:0, regen:0, loot:0, vampire:0, builder:0, points:0 };
+    let skills = { warrior:0, tank:0, speed:0, crit:0, fireRate:0, regen:0, loot:0, vampire:0, builder:0, lumberjack:0, points:0 };
     let quests = { kill10: 0, kill50: 0, kill100: 0, killBoss: 0, buildBase: false, completed: { kill10: false, kill50: false, kill100: false, killBoss: false, buildBase: false } };
     
-    let resources = { wood: 0, scrap: 30, stone: 0, metal: 0 };
+    let resources = { wood: 0, metal: 0, stone: 0 };
+    let resourceLimit = 500;
     
     function getCurrentUser() {
         try { if (window.parent && window.parent.currentUser) return window.parent.currentUser; } catch(e) {}
@@ -217,10 +273,11 @@
         setTimeout(() => toast.remove(), 2500);
     }
     
-    function showLootMessage(msg) {
+    function showLootMessage(msg, isGood = true) {
         const div = document.createElement('div');
         div.className = 'loot-message';
         div.textContent = msg;
+        div.style.color = isGood ? '#ffd700' : '#ff8888';
         document.body.appendChild(div);
         setTimeout(() => div.remove(), 1500);
     }
@@ -256,9 +313,14 @@
     let camera = { x: 0, y: 0 };
     let trees = [];
     let ruins = [];
-    let chests = [];
+    let worldChests = [];
     let turrets = [];
-    let baseWalls = [];
+    let customWalls = [];
+    let farms = [];
+    let generators = [];
+    let storages = [];
+    let workshops = [];
+    let playerChests = [];
     
     let player = {
         x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
@@ -308,11 +370,12 @@
     let canvas = document.getElementById('gameCanvas');
     let ctx = canvas.getContext('2d');
     
-    // ============ ДЕРЕВЬЯ ============
+    // ============ КЛАСС ДЕРЕВА ============
     class Tree {
         constructor(x, y) {
             this.x = x; this.y = y;
             this.hp = 50;
+            this.maxHp = 50;
             this.radius = 12;
         }
         takeDamage(amount) {
@@ -328,7 +391,7 @@
             ctx.beginPath();
             ctx.arc(sx, sy - 12, 10, 0, Math.PI * 2);
             ctx.fill();
-            const hpPercent = this.hp / 50;
+            const hpPercent = this.hp / this.maxHp;
             ctx.fillStyle = '#ff3333';
             ctx.fillRect(sx - 10, sy - 25, 20, 3);
             ctx.fillStyle = '#33ff33';
@@ -336,72 +399,192 @@
         }
     }
     
-    // ============ ПРОВЕРКА СТЕН ДЛЯ ВРАГОВ ============
-    function isCollidingWithWalls(x, y, radius) {
-        for (let wall of baseWalls) {
-            const dx = x - wall.x;
-            const dy = y - wall.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < radius + wall.radius) {
-                return true;
+    // ============ КЛАСС СУНДУКА (РАБОЧИЙ) ============
+    class GameChest {
+        constructor(x, y, isPlayerChest = false) {
+            this.x = x; this.y = y;
+            this.hp = 300;
+            this.maxHp = 300;
+            this.isPlayerChest = isPlayerChest;
+            this.items = [];
+            let itemCount = 3 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < itemCount; i++) {
+                const rand = Math.random();
+                if (rand < 0.35) this.items.push({ type: 'wood', amount: 10 + Math.floor(Math.random() * 25) });
+                else if (rand < 0.6) this.items.push({ type: 'stone', amount: 8 + Math.floor(Math.random() * 20) });
+                else if (rand < 0.8) this.items.push({ type: 'metal', amount: 5 + Math.floor(Math.random() * 15) });
+                else this.items.push({ type: 'medkit', amount: 1 + Math.floor(Math.random() * 2) });
             }
+        }
+        
+        draw(ctx, camX, camY) {
+            let sx = this.x - camX, sy = this.y - camY;
+            ctx.fillStyle = '#8B6914';
+            ctx.fillRect(sx - 12, sy - 8, 24, 16);
+            ctx.fillStyle = '#DAA520';
+            ctx.fillRect(sx - 8, sy - 12, 16, 8);
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(sx - 4, sy - 10, 8, 4);
+            if (this.items.length > 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText('📦', sx - 6, sy - 14);
+            }
+        }
+        
+        takeDamage(amount) {
+            this.hp -= amount;
+            return this.hp <= 0;
+        }
+    }
+    
+    // ============ ОСТАЛЬНЫЕ КЛАССЫ (УПРОЩЁННЫЕ) ============
+    class CustomWall {
+        constructor(x, y, type, direction) {
+            this.x = x; this.y = y;
+            this.type = type;
+            this.direction = direction;
+            if (type === 'wood') {
+                this.hp = 600;
+                this.maxHp = 600;
+            } else if (type === 'stone') {
+                this.hp = 1200;
+                this.maxHp = 1200;
+            } else {
+                this.hp = 2000;
+                this.maxHp = 2000;
+            }
+            this.radius = 12;
+            this.width = 25;
+            this.height = 12;
+        }
+        draw(ctx, camX, camY) {
+            let sx = this.x - camX, sy = this.y - camY;
+            let w = this.width, h = this.height;
+            if (this.direction === 0 || this.direction === 2) { w = this.height; h = this.width; }
+            if (this.direction >= 4) { w = 20; h = 20; }
+            let color = this.type === 'wood' ? '#8B4513' : (this.type === 'stone' ? '#808080' : '#C0C0C0');
+            ctx.fillStyle = color;
+            ctx.fillRect(sx - w/2, sy - h/2, w, h);
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(sx - w/2, sy - h/2 - 5, w, 4);
+            ctx.fillStyle = '#33ff33';
+            ctx.fillRect(sx - w/2, sy - h/2 - 5, w * (this.hp/this.maxHp), 4);
+        }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
+    }
+    
+    class Farm {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.hp = 500;
+            this.production = 0;
+        }
+        update() {
+            this.production++;
+            if (this.production >= 300) {
+                this.production = 0;
+                player.food = Math.min(100, player.food + 5);
+                showLootMessage("🌾 Ферма дала +5 еды!");
+                updateUI();
+            }
+        }
+        draw(ctx, camX, camY) {
+            let sx = this.x - camX, sy = this.y - camY;
+            ctx.fillStyle = '#4a8a2a';
+            ctx.fillRect(sx - 15, sy - 10, 30, 20);
+            ctx.fillStyle = '#2a6a1a';
+            for (let i = 0; i < 3; i++) ctx.fillRect(sx - 10 + i * 10, sy - 15, 3, 15);
+        }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
+    }
+    
+    class Generator {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.hp = 600;
+            this.energy = 0;
+        }
+        update() {
+            this.energy++;
+            if (this.energy >= 200) {
+                this.energy = 0;
+                for (let t of turrets) t.damage += 1;
+            }
+        }
+        draw(ctx, camX, camY) {
+            let sx = this.x - camX, sy = this.y - camY;
+            ctx.fillStyle = '#aa8800';
+            ctx.fillRect(sx - 12, sy - 12, 24, 24);
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillRect(sx - 8, sy - 8, 16, 16);
+        }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
+    }
+    
+    class Storage {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.hp = 400;
+        }
+        draw(ctx, camX, camY) {
+            let sx = this.x - camX, sy = this.y - camY;
+            ctx.fillStyle = '#8B6914';
+            ctx.fillRect(sx - 10, sy - 8, 20, 16);
+        }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
+    }
+    
+    class Workshop {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.hp = 700;
+        }
+        draw(ctx, camX, camY) {
+            let sx = this.x - camX, sy = this.y - camY;
+            ctx.fillStyle = '#557799';
+            ctx.fillRect(sx - 14, sy - 10, 28, 20);
+            ctx.fillStyle = '#7799bb';
+            ctx.fillRect(sx - 6, sy - 4, 12, 8);
+        }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
+    }
+    
+    function isCollidingWithWalls(x, y, radius) {
+        for (let wall of customWalls) {
+            let dx = x - wall.x, dy = y - wall.y;
+            if (dx * dx + dy * dy < (radius + 12) * (radius + 12)) return true;
         }
         return false;
     }
     
-    // ============ ВРАГ (РАБОЧАЯ ВЕРСИЯ С ПРОВЕРКОЙ СТЕН) ============
     class Enemy {
         constructor(x, y, type = 'normal', level = 1) {
             this.x = x; this.y = y; this.type = type; this.level = level;
             this.radius = 14;
-            
             if (type === 'fast') {
-                this.hp = 30 + level * 3;
-                this.speed = 2.5;
-                this.damage = 10;
-                this.color = '#ff8844';
-                this.reward = 20;
+                this.hp = 30 + level * 3; this.speed = 2.5; this.damage = 10; this.color = '#ff8844'; this.reward = 20;
             } else if (type === 'tank') {
-                this.hp = 150 + level * 20;
-                this.speed = 0.7;
-                this.damage = 25;
-                this.color = '#8844aa';
-                this.reward = 50;
-                this.radius = 20;
+                this.hp = 150 + level * 20; this.speed = 0.7; this.damage = 25; this.color = '#8844aa'; this.reward = 50; this.radius = 20;
             } else {
-                this.hp = 60 + level * 5;
-                this.speed = 1.5;
-                this.damage = 15;
-                this.color = '#44ff88';
-                this.reward = 15;
+                this.hp = 60 + level * 5; this.speed = 1.5; this.damage = 15; this.color = '#44ff88'; this.reward = 15;
             }
             this.maxHp = this.hp;
             this.attackCooldown = 0;
             this.attackSpeed = 40;
         }
-        
         update() {
-            let dx = player.x - this.x;
-            let dy = player.y - this.y;
+            let dx = player.x - this.x, dy = player.y - this.y;
             let dist = Math.sqrt(dx * dx + dy * dy);
-            
             if (dist > 3) {
-                let moveX = (dx / dist) * this.speed;
-                let moveY = (dy / dist) * this.speed;
-                let newX = this.x + moveX;
-                let newY = this.y + moveY;
-                
-                // ПРОВЕРКА СТЕН - зомби НЕ ПРОХОДЯТ через стены
+                let moveX = (dx / dist) * this.speed, moveY = (dy / dist) * this.speed;
+                let newX = this.x + moveX, newY = this.y + moveY;
                 if (!isCollidingWithWalls(newX, newY, this.radius)) {
-                    this.x = newX;
-                    this.y = newY;
+                    this.x = newX; this.y = newY;
                 }
             }
-            
             if (this.attackCooldown > 0) this.attackCooldown--;
-            
-            let distToPlayer = Math.sqrt((this.x - player.x) ** 2 + (this.y - player.y) ** 2);
-            if (distToPlayer < this.radius + player.radius && this.attackCooldown === 0) {
+            if (Math.hypot(this.x - player.x, this.y - player.y) < this.radius + player.radius && this.attackCooldown === 0) {
                 if (player.invincibleTimer <= 0) {
                     player.hp = Math.max(0, player.hp - this.damage);
                     document.getElementById('hp').innerHTML = Math.floor(player.hp);
@@ -411,37 +594,20 @@
                 this.attackCooldown = this.attackSpeed;
             }
         }
-        
         draw(ctx, camX, camY) {
-            const sx = this.x - camX;
-            const sy = this.y - camY;
-            if (sx < -100 || sx > canvas.width + 100 || sy < -100 || sy > canvas.height + 100) return;
-            
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 10px monospace';
+            const sx = this.x - camX, sy = this.y - camY;
+            if (sx < -100 || sx > canvas.width + 100) return;
+            ctx.beginPath(); ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color; ctx.fill();
+            ctx.fillStyle = 'white'; ctx.font = 'bold 10px monospace';
             ctx.fillText(`${Math.floor(this.hp)}`, sx - 14, sy - 16);
-            
             const hpPercent = this.hp / this.maxHp;
-            ctx.fillStyle = '#ff3333';
-            ctx.fillRect(sx - 18, sy - 22, 36, 4);
-            ctx.fillStyle = '#33ff33';
-            ctx.fillRect(sx - 18, sy - 22, 36 * hpPercent, 4);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 12px monospace';
+            ctx.fillStyle = '#ff3333'; ctx.fillRect(sx - 18, sy - 22, 36, 4);
+            ctx.fillStyle = '#33ff33'; ctx.fillRect(sx - 18, sy - 22, 36 * hpPercent, 4);
             if (this.type === 'fast') ctx.fillText('⚡', sx - 6, sy - 28);
             else if (this.type === 'tank') ctx.fillText('💪', sx - 6, sy - 28);
         }
-        
-        takeDamage(amount) {
-            this.hp -= amount;
-            return this.hp <= 0;
-        }
+        takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
     }
     
     class BossTank {
@@ -449,21 +615,15 @@
             this.x = x; this.y = y; this.hp = 2000; this.maxHp = 2000;
             this.speed = 0.5; this.damage = 40; this.radius = 45;
             this.color = '#aa3333'; this.reward = 1000;
-            this.attackCooldown = 0;
-            this.attackSpeed = 50;
+            this.attackCooldown = 0; this.attackSpeed = 50;
         }
         update() {
             let dx = player.x - this.x, dy = player.y - this.y;
             let dist = Math.sqrt(dx * dx + dy * dy);
             if (dist > 3) {
-                let moveX = (dx / dist) * this.speed;
-                let moveY = (dy / dist) * this.speed;
-                let newX = this.x + moveX;
-                let newY = this.y + moveY;
-                if (!isCollidingWithWalls(newX, newY, this.radius)) {
-                    this.x = newX;
-                    this.y = newY;
-                }
+                let moveX = (dx / dist) * this.speed, moveY = (dy / dist) * this.speed;
+                let newX = this.x + moveX, newY = this.y + moveY;
+                if (!isCollidingWithWalls(newX, newY, this.radius)) { this.x = newX; this.y = newY; }
             }
             if (this.attackCooldown > 0) this.attackCooldown--;
             if (dist < this.radius + player.radius && this.attackCooldown === 0) {
@@ -474,19 +634,13 @@
         }
         draw(ctx, camX, camY) {
             const sx = this.x - camX, sy = this.y - camY;
-            if (sx < -100 || sx > canvas.width + 100) return;
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            ctx.fillStyle = '#ff0000';
-            ctx.font = 'bold 16px monospace';
+            ctx.beginPath(); ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color; ctx.fill();
+            ctx.fillStyle = '#ff0000'; ctx.font = 'bold 16px monospace';
             ctx.fillText('БОСС', sx - 25, sy - 35);
             const hpPercent = this.hp / this.maxHp;
-            ctx.fillStyle = '#ff3333';
-            ctx.fillRect(sx - 45, sy - 45, 90, 8);
-            ctx.fillStyle = '#33ff33';
-            ctx.fillRect(sx - 45, sy - 45, 90 * hpPercent, 8);
+            ctx.fillStyle = '#ff3333'; ctx.fillRect(sx - 45, sy - 45, 90, 8);
+            ctx.fillStyle = '#33ff33'; ctx.fillRect(sx - 45, sy - 45, 90 * hpPercent, 8);
         }
         takeDamage(amount) { this.hp -= amount; return this.hp <= 0; }
     }
@@ -501,17 +655,11 @@
             this.life = 300;
             this.color = color;
         }
-        update() { 
-            this.x += this.vx; this.y += this.vy; this.life--; 
-            return this.life > 0;
-        }
+        update() { this.x += this.vx; this.y += this.vy; this.life--; return this.life > 0; }
         draw(ctx, camX, camY) { 
             const sx = this.x - camX, sy = this.y - camY;
             if (sx < -50 || sx > canvas.width + 50) return;
-            ctx.fillStyle = this.color; 
-            ctx.beginPath(); 
-            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2); 
-            ctx.fill(); 
+            ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(sx, sy, this.radius, 0, Math.PI * 2); ctx.fill();
         }
     }
     
@@ -526,10 +674,7 @@
             let closest = null, closestDist = this.range;
             for (let e of enemies) {
                 const dist = Math.hypot(e.x - this.x, e.y - this.y);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = e;
-                }
+                if (dist < closestDist) { closestDist = dist; closest = e; }
             }
             if (currentBoss && Math.hypot(currentBoss.x - this.x, currentBoss.y - this.y) < this.range) closest = currentBoss;
             if (closest && this.cooldown === 0) {
@@ -540,17 +685,10 @@
         }
         draw(ctx, camX, camY) {
             const sx = this.x - camX, sy = this.y - camY;
-            if (sx < -50 || sx > canvas.width + 50) return;
-            ctx.fillStyle = '#888888';
-            ctx.fillRect(sx - 8, sy - 8, 16, 16);
-            ctx.fillStyle = '#666666';
-            ctx.fillRect(sx - 3, sy - 12, 6, 8);
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(sx + Math.cos(this.angle) * 20, sy + Math.sin(this.angle) * 20);
-            ctx.strokeStyle = '#ffaa00';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            ctx.fillStyle = '#888888'; ctx.fillRect(sx - 8, sy - 8, 16, 16);
+            ctx.fillStyle = '#666666'; ctx.fillRect(sx - 3, sy - 12, 6, 8);
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(this.angle) * 20, sy + Math.sin(this.angle) * 20);
+            ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2; ctx.stroke();
         }
     }
     
@@ -609,73 +747,60 @@
     
     // ============ ИГРОВЫЕ ФУНКЦИИ ============
     function generateWorld() {
-        trees = [];
-        ruins = [];
-        chests = [];
-        
-        for (let i = 0; i < 100; i++) {
-            trees.push(new Tree(Math.random() * WORLD_SIZE, Math.random() * WORLD_SIZE));
-        }
+        trees = []; ruins = []; worldChests = [];
+        for (let i = 0; i < 100; i++) trees.push(new Tree(Math.random() * WORLD_SIZE, Math.random() * WORLD_SIZE));
         for (let i = 0; i < 50; i++) {
             let floors = 1 + Math.floor(Math.random() * 4);
             ruins.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, radius: 35 + Math.random() * 30, floors: floors, looted: false, respawnTimer: 0 });
         }
-        for (let i = 0; i < 30; i++) {
-            chests.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, radius: 14, looted: false, respawnTimer: 0 });
-        }
+        for (let i = 0; i < 15; i++) worldChests.push(new GameChest(Math.random() * WORLD_SIZE, Math.random() * WORLD_SIZE, false));
     }
     
     function generateBaseWalls() {
-        baseWalls = [];
-        base.wallHp = [];
-        const wallCount = 10 + base.level * 2;
-        const bonus = 1 + (skills.builder * 0.2);
+        customWalls = [];
+        const wallCount = 8 + base.level * 2;
+        const bonus = 1 + (skills.builder * 0.3);
         for (let i = 0; i < wallCount; i++) {
             const angle = (i / wallCount) * Math.PI * 2;
             const radius = base.wallRadius;
-            baseWalls.push({ x: base.x + Math.cos(angle) * radius, y: base.y + Math.sin(angle) * radius, radius: 10 });
-            base.wallHp.push(Math.floor((500 + base.level * 80) * bonus));
+            let wallType = base.level >= 3 ? 'metal' : (base.level >= 2 ? 'stone' : 'wood');
+            let newWall = new CustomWall(base.x + Math.cos(angle) * radius, base.y + Math.sin(angle) * radius, wallType, i % 4);
+            newWall.hp = Math.floor(newWall.hp * bonus);
+            newWall.maxHp = newWall.hp;
+            customWalls.push(newWall);
         }
     }
     
     function buildBase() {
-        if (!base.owned && coins >= 600) {
-            coins -= 600;
+        if (!base.owned && coins >= 800) {
+            coins -= 800;
             base.owned = true;
-            baseDestroyed = false;
             base.level = 1;
-            base.hp = 1000;
-            base.maxHp = 1000;
+            base.hp = 1200;
+            base.maxHp = 1200;
             base.turretSlots = 1;
-            base.wallRadius = 90;
+            base.wallRadius = 100;
             base.x = player.x;
             base.y = player.y;
             generateBaseWalls();
             updateUI();
             checkQuests();
-            showToast("🏠 База построена прямо здесь!");
+            showToast("🏠 База построена! Стены можно улучшать!");
         } else if (!base.owned) {
-            showToast("❌ Нужно 600 монет!", true);
-        } else if (baseDestroyed) {
-            base.owned = true;
-            baseDestroyed = false;
-            base.hp = base.maxHp;
-            generateBaseWalls();
-            showToast("🏠 База восстановлена!");
-            updateUI();
+            showToast("❌ Нужно 800 монет!", true);
         }
     }
     
     function upgradeBase() {
-        if (!base.owned || baseDestroyed) { showToast("Сначала построй базу!", true); return; }
-        const cost = 500 * base.level;
+        if (!base.owned) { showToast("Сначала построй базу!", true); return; }
+        const cost = 600 * base.level;
         if (coins >= cost) {
             coins -= cost;
             base.level++;
-            base.maxHp = 1000 + (base.level - 1) * 200;
+            base.maxHp = 1200 + (base.level - 1) * 300;
             base.hp = base.maxHp;
             base.turretSlots = 1 + Math.floor(base.level / 2);
-            base.wallRadius = 90 + base.level * 5;
+            base.wallRadius = 100 + base.level * 5;
             generateBaseWalls();
             updateUI();
             showToast(`🏠 База улучшена до ${base.level} уровня!`);
@@ -685,95 +810,205 @@
     }
     
     function buyTurret() {
-        if (!base.owned || baseDestroyed) { showToast("Сначала построй базу!", true); return; }
-        if (coins >= 150 && turrets.length < base.turretSlots) {
-            coins -= 150;
-            turrets.push(new Turret(base.x + (turrets.length * 50) - 50, base.y + 35));
+        if (!base.owned) { showToast("Сначала построй базу!", true); return; }
+        if (coins >= 200 && turrets.length < base.turretSlots) {
+            coins -= 200;
+            turrets.push(new Turret(base.x + (turrets.length * 55) - 55, base.y + 40));
             updateUI();
             showToast("🔫 Турель установлена!");
         } else {
-            showToast("❌ Нужно 150 монет или лимит!", true);
+            showToast("❌ Нужно 200 монет или лимит!", true);
         }
     }
     
-    function craftItem(craftType) {
-        if (craftType === 'woodWall' && resources.wood >= 10) {
-            resources.wood -= 10;
-            showToast("🪵 Деревянная стена готова! (установится автоматически)");
-            if (base.owned && !baseDestroyed) generateBaseWalls();
-        } else if (craftType === 'stoneWall' && resources.stone >= 20) {
-            resources.stone -= 20;
-            showToast("🪨 Каменная стена готова!");
-        } else if (craftType === 'metalWall' && resources.metal >= 30) {
-            resources.metal -= 30;
-            showToast("⚙️ Металлическая стена готова!");
-        } else if (craftType === 'turretUpgrade' && resources.metal >= 50) {
-            resources.metal -= 50;
-            for (let t of turrets) t.damage += 10;
-            showToast("🔫 Турели улучшены! +10 урона");
-        } else if (craftType === 'repairKit' && resources.wood >= 30 && resources.metal >= 20) {
-            resources.wood -= 30;
-            resources.metal -= 20;
-            if (base.owned && base.hp < base.maxHp) {
-                base.hp = Math.min(base.maxHp, base.hp + 200);
-                showToast("🔧 База отремонтирована! +200 HP");
-                updateUI();
-            } else {
-                showToast("🏠 База уже в хорошем состоянии!");
-            }
-        } else if (craftType === 'axe' && resources.wood >= 25 && resources.metal >= 10) {
-            resources.wood -= 25;
-            resources.metal -= 10;
-            player.damage += 5;
-            showToast("🪓 Топор выкован! +5 к урону");
+    function startCraft(craftType) {
+        pendingCraft = craftType;
+        document.getElementById('directionPanel').style.display = 'flex';
+        showToast("Выбери направление стены!", false);
+    }
+    
+    function craftWithDirection(direction) {
+        if (!pendingCraft) return;
+        document.getElementById('directionPanel').style.display = 'none';
+        let costWood = 0, costStone = 0, costMetal = 0, type = '';
+        if (pendingCraft === 'woodWall') { costWood = 10; costStone = 5; type = 'wood'; }
+        else if (pendingCraft === 'stoneWall') { costStone = 15; costWood = 5; type = 'stone'; }
+        else if (pendingCraft === 'metalWall') { costMetal = 20; costWood = 5; type = 'metal'; }
+        
+        if (resources.wood >= costWood && resources.stone >= costStone && resources.metal >= costMetal) {
+            resources.wood -= costWood; resources.stone -= costStone; resources.metal -= costMetal;
+            let wallX = player.x, wallY = player.y, offset = 45;
+            if (direction == 0) wallY -= offset;
+            else if (direction == 1) wallX += offset;
+            else if (direction == 2) wallY += offset;
+            else if (direction == 3) wallX -= offset;
+            else if (direction == 4) { wallX -= offset; wallY -= offset; }
+            else if (direction == 5) { wallX += offset; wallY -= offset; }
+            else if (direction == 6) { wallX -= offset; wallY += offset; }
+            else if (direction == 7) { wallX += offset; wallY += offset; }
+            customWalls.push(new CustomWall(wallX, wallY, type, direction));
+            showToast(`🧱 ${type === 'wood' ? 'Деревянная' : type === 'stone' ? 'Каменная' : 'Металлическая'} стена построена!`);
             updateUI();
-        } else {
-            showToast("❌ Не хватает ресурсов!", true);
+        } else { showToast("❌ Не хватает ресурсов!", true); }
+        pendingCraft = null;
+        updateResourceDisplay();
+    }
+    
+    function craftItem(craftType) {
+        if (craftType === 'farm' && resources.wood >= 30 && resources.metal >= 10) {
+            resources.wood -= 30; resources.metal -= 10;
+            farms.push(new Farm(player.x, player.y));
+            showToast("🌾 Ферма построена!");
+        } else if (craftType === 'generator' && resources.metal >= 40 && resources.stone >= 20) {
+            resources.metal -= 40; resources.stone -= 20;
+            generators.push(new Generator(player.x, player.y));
+            showToast("⚡ Генератор построен!");
+        } else if (craftType === 'storage' && resources.wood >= 20 && resources.metal >= 10) {
+            resources.wood -= 20; resources.metal -= 10;
+            storages.push(new Storage(player.x, player.y));
+            resourceLimit += 50;
+            showToast("📦 Склад построен! +50 лимит ресурсов");
+        } else if (craftType === 'chest' && resources.wood >= 15 && resources.metal >= 5) {
+            resources.wood -= 15; resources.metal -= 5;
+            let newChest = new GameChest(player.x, player.y, true);
+            playerChests.push(newChest);
+            showToast("📦 Сундук построен! Нажмите на него чтобы открыть");
+        } else if (craftType === 'repairKit' && resources.wood >= 30 && resources.metal >= 20) {
+            resources.wood -= 30; resources.metal -= 20;
+            if (base.owned && base.hp < base.maxHp) {
+                base.hp = Math.min(base.maxHp, base.hp + 400);
+                showToast("🔧 База отремонтирована! +400 HP");
+                updateUI();
+            } else { showToast("🏠 База уже в хорошем состоянии!"); }
+        } else if (craftType === 'woodWall' || craftType === 'stoneWall' || craftType === 'metalWall') {
+            startCraft(craftType);
+            return;
+        } else { showToast("❌ Не хватает ресурсов!", true); }
+        updateResourceDisplay();
+        updateUI();
+    }
+    
+    function updateAxeDisplay() {
+        let axeNames = {1: "🪓 Деревянный", 2: "⚔️ Железный", 3: "💎 Алмазный", 4: "🔱 Адамантовый"};
+        document.getElementById('axeLevel').innerHTML = axeNames[axeLevel] || "🪓 Деревянный";
+    }
+    
+    function upgradeWorkbench() {
+        let needMetal = [100, 200, 400][workbenchLevel-1] || 400;
+        let needStone = needMetal / 2;
+        let needWood = needMetal / 3;
+        if (workbenchLevel < 4 && resources.metal >= needMetal && resources.stone >= needStone && resources.wood >= needWood) {
+            resources.metal -= needMetal; resources.stone -= needStone; resources.wood -= needWood;
+            workbenchLevel++;
+            showToast(`🛠️ Верстак улучшен до ${workbenchLevel} уровня!`);
+            updateWorkbenchUI();
+            updateUI();
+        } else { showToast("❌ Не хватает ресурсов для улучшения!", true); }
+    }
+    
+    function updateWorkbenchUI() {
+        document.getElementById('workbenchLevel').innerHTML = workbenchLevel;
+        const container = document.getElementById('workbenchRecipes');
+        let recipes = '';
+        if (workbenchLevel >= 1) {
+            recipes += `<button class="craft-btn" data-wb="ironAxe">⚔️ Железный топор (30 мет, 20 дер)</button>`;
+            recipes += `<button class="craft-btn" data-wb="steelArmor">🛡️ Стальная броня (40 мет, 10 кам)</button>`;
         }
+        if (workbenchLevel >= 2) {
+            recipes += `<button class="craft-btn" data-wb="diamondAxe">💎 Алмазный топор (80 мет, 40 кам)</button>`;
+            recipes += `<button class="craft-btn" data-wb="laserTurret">🔫 Лазерная турель (80 мет, 30 кам)</button>`;
+        }
+        if (workbenchLevel >= 3) {
+            recipes += `<button class="craft-btn" data-wb="adamantAxe">🔱 Адамантовый топор (200 мет, 100 кам)</button>`;
+            recipes += `<button class="craft-btn" data-wb="nuke">💣 Ядерная бомба (200 мет, 100 кам)</button>`;
+        }
+        if (workbenchLevel >= 4) {
+            recipes += `<button class="craft-btn" data-wb="robotPet">🤖 Робот-питомец (150 мет, 80 кам)</button>`;
+        }
+        container.innerHTML = recipes;
+        document.querySelectorAll('[data-wb]').forEach(btn => {
+            btn.onclick = () => craftWorkbenchItem(btn.dataset.wb);
+        });
+    }
+    
+    function craftWorkbenchItem(itemType) {
+        if (itemType === 'ironAxe' && resources.metal >= 30 && resources.wood >= 20) {
+            resources.metal -= 30; resources.wood -= 20;
+            axeLevel = 2; axeDamage = 25;
+            updateAxeDisplay();
+            showToast("⚔️ Железный топор выкован! Урон по деревьям +10");
+        } else if (itemType === 'diamondAxe' && resources.metal >= 80 && resources.stone >= 40) {
+            resources.metal -= 80; resources.stone -= 40;
+            axeLevel = 3; axeDamage = 40;
+            updateAxeDisplay();
+            showToast("💎 Алмазный топор выкован! Урон по деревьям +25");
+        } else if (itemType === 'adamantAxe' && resources.metal >= 200 && resources.stone >= 100) {
+            resources.metal -= 200; resources.stone -= 100;
+            axeLevel = 4; axeDamage = 65;
+            updateAxeDisplay();
+            showToast("🔱 Адамантовый топор выкован! Урон по деревьям +50");
+        } else if (itemType === 'steelArmor' && resources.metal >= 40 && resources.stone >= 10) {
+            resources.metal -= 40; resources.stone -= 10;
+            inventory.armor = 1;
+            showToast("🛡️ Стальная броня надета! -40% урона");
+        } else if (itemType === 'laserTurret' && resources.metal >= 80 && resources.stone >= 30) {
+            resources.metal -= 80; resources.stone -= 30;
+            turrets.push(new Turret(player.x, player.y));
+            turrets[turrets.length-1].damage = 50;
+            showToast("🔫 Лазерная турель установлена! Урон 50");
+        } else if (itemType === 'nuke' && resources.metal >= 200 && resources.stone >= 100) {
+            resources.metal -= 200; resources.stone -= 100;
+            for (let e of enemies) e.hp -= 500;
+            if (currentBoss) currentBoss.hp -= 500;
+            showToast("💣 ЯДЕРНАЯ БОМБА! 500 урона всем врагам!");
+        } else if (itemType === 'robotPet' && resources.metal >= 150 && resources.stone >= 80) {
+            resources.metal -= 150; resources.stone -= 80;
+            robotActive = true;
+            robot = new Robot();
+            showToast("🤖 Робот-питомец активирован!");
+        } else { showToast("❌ Не хватает ресурсов!", true); }
+        updateUI();
         updateResourceDisplay();
     }
     
     function spawnBoss() {
         if (currentBoss) return;
         let angle = Math.random() * Math.PI * 2;
-        let x = player.x + Math.cos(angle) * 500;
-        let y = player.y + Math.sin(angle) * 500;
+        let x = player.x + Math.cos(angle) * 600;
+        let y = player.y + Math.sin(angle) * 600;
         x = Math.min(Math.max(x, 100), WORLD_SIZE - 100);
         y = Math.min(Math.max(y, 100), WORLD_SIZE - 100);
         currentBoss = new BossTank(x, y);
         document.getElementById('bossUI').classList.remove('hidden');
-        document.getElementById('bossName').innerHTML = '💪 БОСС';
-        showToast("⚠️ БОСС ПОЯВИЛСЯ! ⚠️", true);
-        bossSpawnTimer = 600;
+        document.getElementById('bossName').innerHTML = '💀 МЕГА-БОСС 💀';
+        showToast("⚠️ МОЩНЫЙ БОСС ПОЯВИЛСЯ! ⚠️", true);
+        bossSpawnTimer = 900;
     }
     
     function startRaid() {
-        if (raidActive || !base.owned || baseDestroyed) return;
+        if (raidActive || !base.owned) return;
         raidActive = true;
         raidTimer = 600;
-        showToast("🧟‍♂️ НАБЕГ НА БАЗУ! 🧟‍♂️", true);
-        for (let i = 0; i < 15; i++) {
+        showToast("🧟‍♂️ МАССОВЫЙ НАБЕГ НА БАЗУ! ЗАЩИЩАЙТЕ СТЕНЫ! 🧟‍♂️", true);
+        for (let i = 0; i < 20; i++) {
             setTimeout(() => {
                 let angle = Math.random() * Math.PI * 2;
-                let x = base.x + Math.cos(angle) * (base.wallRadius + 100);
-                let y = base.y + Math.sin(angle) * (base.wallRadius + 100);
+                let x = base.x + Math.cos(angle) * (base.wallRadius + 120);
+                let y = base.y + Math.sin(angle) * (base.wallRadius + 120);
                 const types = ['normal', 'fast', 'tank'];
                 const type = types[Math.floor(Math.random() * types.length)];
                 enemies.push(new Enemy(x, y, type, Math.floor(base.level / 2) + 1));
-            }, i * 400);
+            }, i * 350);
         }
     }
     
     function useAbility() {
-        if (abilityCooldown > 0) {
-            showToast(`Перезарядка: ${Math.ceil(abilityCooldown / 60)}с`, true);
-            return;
-        }
-        abilityCooldown = 600;
-        for (let e of enemies) e.hp -= 80;
-        if (currentBoss) currentBoss.hp -= 150;
-        showToast("✨ УЛЬТИМАТИВНАЯ СПОСОБНОСТЬ! ✨");
-        for (let i = 0; i < 40; i++) particles.push(new Particle(player.x, player.y, '#ffaa44'));
+        if (abilityCooldown > 0) { showToast(`Перезарядка: ${Math.ceil(abilityCooldown / 60)}с`, true); return; }
+        abilityCooldown = 720;
+        for (let e of enemies) e.hp -= 100;
+        if (currentBoss) currentBoss.hp -= 200;
+        showToast("✨ УЛЬТИМАТИВНАЯ СПОСОБНОСТЬ! 100-200 урона всем врагам! ✨");
+        for (let i = 0; i < 50; i++) particles.push(new Particle(player.x, player.y, '#ffaa44'));
     }
     
     function applySkill(skillType) {
@@ -788,6 +1023,7 @@
         else if (skillType === 'loot') { skills.loot++; }
         else if (skillType === 'vampire') { skills.vampire++; }
         else if (skillType === 'builder') { skills.builder++; generateBaseWalls(); }
+        else if (skillType === 'lumberjack') { skills.lumberjack++; axeDamage = Math.floor(axeDamage * 1.2); }
         updateUI();
         showToast(`Навык ${skillType} улучшен!`);
         document.getElementById('skillPoints').innerHTML = `Очков: ${skills.points}`;
@@ -795,24 +1031,23 @@
     
     function spawnEnemy() {
         let angle = Math.random() * Math.PI * 2;
-        let distance = 500 + Math.random() * 300;
+        let distance = 550 + Math.random() * 350;
         let x = player.x + Math.cos(angle) * distance;
         let y = player.y + Math.sin(angle) * distance;
         x = Math.min(Math.max(x, 100), WORLD_SIZE - 100);
         y = Math.min(Math.max(y, 100), WORLD_SIZE - 100);
-        
         let type = 'normal';
         const rand = Math.random();
         if (gameMode === 'survival') {
-            if (kills > 50 && rand < 0.1 && !currentBoss && bossSpawnTimer <= 0) { spawnBoss(); return; }
-            else if (kills > 30 && rand < 0.2) type = 'tank';
+            if (kills > 60 && rand < 0.08 && !currentBoss && bossSpawnTimer <= 0) { spawnBoss(); return; }
+            else if (kills > 35 && rand < 0.2) type = 'tank';
             else if (kills > 15 && rand < 0.25) type = 'fast';
         } else {
-            if (wave >= 8 && rand < 0.15 && !currentBoss && bossSpawnTimer <= 0) { spawnBoss(); return; }
+            if (wave >= 8 && rand < 0.12 && !currentBoss && bossSpawnTimer <= 0) { spawnBoss(); return; }
             else if (wave >= 5 && rand < 0.25) type = 'tank';
             else if (wave >= 3 && rand < 0.3) type = 'fast';
         }
-        const enemyLevel = gameMode === 'survival' ? Math.floor(kills / 20) + 1 : wave;
+        const enemyLevel = gameMode === 'survival' ? Math.floor(kills / 25) + 1 : wave;
         enemies.push(new Enemy(x, y, type, enemyLevel));
     }
     
@@ -851,27 +1086,22 @@
     function addKill() {
         kills++;
         document.getElementById('kills').innerHTML = kills;
-        addExp(10);
+        addExp(12);
         statistics.totalKills = kills;
         if (player.level > statistics.maxLevel) statistics.maxLevel = player.level;
         checkQuests();
-        
         if (gameMode === 'arena') {
             if (enemies.length === 0 && waveInProgress && !currentBoss) {
                 wave++;
                 if (wave > statistics.bestWave) statistics.bestWave = wave;
-                enemiesToSpawn = 5 + Math.floor(wave * 1.2);
-                spawnTimer = 50;
+                enemiesToSpawn = 5 + Math.floor(wave * 1.25);
+                spawnTimer = 55;
                 waveInProgress = true;
-                addCoins(60 + wave * 8);
+                addCoins(70 + wave * 10);
                 showToast(`🌊 ВОЛНА ${wave}!`);
             }
         }
-        
-        if (base.owned && !baseDestroyed && kills % 30 === 0 && kills > 0 && !raidActive && gameMode === 'survival') {
-            startRaid();
-        }
-        
+        if (base.owned && kills % 35 === 0 && kills > 0 && !raidActive && gameMode === 'survival') startRaid();
         if (bossSpawnTimer > 0) bossSpawnTimer--;
     }
     
@@ -884,93 +1114,167 @@
         document.getElementById('damage').innerHTML = player.damage;
         document.getElementById('food').innerHTML = Math.floor(player.food);
         document.getElementById('wood').innerHTML = resources.wood;
-        document.getElementById('scrap').innerHTML = resources.scrap;
+        document.getElementById('metal').innerHTML = resources.metal;
         updateFoodWarning();
-        
+        updateAxeDisplay();
         updateInventoryDisplay();
         updateBasePanel();
         updateResourceDisplay();
+        updateStructuresList();
+    }
+    
+    function updateStructuresList() {
+        const container = document.getElementById('structuresList');
+        container.innerHTML = `<div>🧱 Стены: ${customWalls.length}</div>
+            <div>🌾 Фермы: ${farms.length}</div>
+            <div>⚡ Генераторы: ${generators.length}</div>
+            <div>📦 Склады: ${storages.length}</div>
+            <div>🔧 Мастерские: ${workshops.length}</div>
+            <div>📦 Сундуки: ${playerChests.length}</div>
+            <div>🔫 Турели: ${turrets.length}/${base.turretSlots}</div>`;
     }
     
     function updateResourceDisplay() {
         document.getElementById('craftWood').innerHTML = resources.wood;
-        document.getElementById('craftScrap').innerHTML = resources.scrap;
+        document.getElementById('craftMetal').innerHTML = resources.metal;
+        document.getElementById('craftStone').innerHTML = resources.stone;
+        document.getElementById('wbWood').innerHTML = resources.wood;
+        document.getElementById('wbMetal').innerHTML = resources.metal;
+        document.getElementById('wbStone').innerHTML = resources.stone;
     }
     
     function updateBasePanel() {
         const container = document.getElementById('basePanelContainer');
         if (gameMode === 'survival') {
-            if (!base.owned || baseDestroyed) {
-                container.innerHTML = `<div class="base-panel"><div>🏠 БАЗА РАЗРУШЕНА</div><button id="buyBaseBtn">🏗️ ПОСТРОИТЬ НОВУЮ (600💰)</button></div>`;
+            if (!base.owned) {
+                container.innerHTML = `<div class="base-panel"><div>🏠 БАЗА НЕ ПОСТРОЕНА</div><button id="buyBaseBtn">🏗️ ПОСТРОИТЬ (800💰)</button></div>`;
                 document.getElementById('buyBaseBtn')?.addEventListener('click', buildBase);
             } else {
-                const totalWallHp = base.wallHp.reduce((a, b) => a + b, 0);
+                const totalWallHp = customWalls.reduce((a, b) => a + b.hp, 0);
                 container.innerHTML = `<div class="base-panel">
                     <div>🏠 БАЗА УР.${base.level}</div>
                     <div>❤️ ХП: ${Math.floor(base.hp)}/${base.maxHp}</div>
                     <div>🔫 ТУРЕЛИ: ${turrets.length}/${base.turretSlots}</div>
-                    <div>🧱 СТЕНЫ: ${baseWalls.length} (${Math.floor(totalWallHp)} HP)</div>
-                    <button id="upgradeBaseBtn">🏗️ УЛУЧШИТЬ (${500 * base.level}💰)</button>
-                    <button id="buyTurretBtn">🔫 ТУРЕЛЬ (150💰)</button>
+                    <div>🧱 СТЕНЫ: ${customWalls.length} (${Math.floor(totalWallHp)} HP)</div>
+                    <button id="upgradeBaseBtn">🏗️ УЛУЧШИТЬ (${600 * base.level}💰)</button>
+                    <button id="buyTurretBtn">🔫 ТУРЕЛЬ (200💰)</button>
                 </div>`;
                 document.getElementById('upgradeBaseBtn')?.addEventListener('click', upgradeBase);
                 document.getElementById('buyTurretBtn')?.addEventListener('click', buyTurret);
             }
-        } else {
-            container.innerHTML = '';
-        }
+        } else { container.innerHTML = ''; }
     }
     
     function updateInventoryDisplay() {
         const container = document.getElementById('inventorySlots');
         container.innerHTML = `<div class="slot" onclick="window.useItem('medkit')">💊 Аптечки: ${inventory.medkits}</div>
             <div class="slot" onclick="window.useItem('food')">🥫 Еда: ${inventory.foodCans}</div>
-            <div class="slot">🪵 Дерево: ${resources.wood}</div>
-            <div class="slot">🪨 Камень: ${resources.stone}</div>
-            <div class="slot">⚙️ Металл: ${resources.metal}</div>
+            <div class="slot">🪵 Дерево: ${resources.wood}/${resourceLimit}</div>
+            <div class="slot">🪨 Камень: ${resources.stone}/${resourceLimit}</div>
+            <div class="slot">⚙️ Металл: ${resources.metal}/${resourceLimit}</div>
             <div class="slot">🛡️ Броня: ${inventory.armor}</div>`;
     }
     
     function useItem(item) {
         if (item === 'medkit' && inventory.medkits > 0 && player.hp < player.maxHp) {
             inventory.medkits--;
-            player.hp = Math.min(player.maxHp, player.hp + 50);
+            player.hp = Math.min(player.maxHp, player.hp + 60);
             document.getElementById('hp').innerHTML = Math.floor(player.hp);
-            showLootMessage("💊 Аптечка +50 HP!");
+            showLootMessage("💊 Аптечка +60 HP!");
         } else if (item === 'food' && inventory.foodCans > 0 && player.food < 100) {
             inventory.foodCans--;
-            player.food = Math.min(100, player.food + 30);
+            player.food = Math.min(100, player.food + 35);
             document.getElementById('food').innerHTML = Math.floor(player.food);
-            showLootMessage("🥫 Еда +30%!");
+            showLootMessage("🥫 Еда +35%!");
             updateFoodWarning();
         }
         updateInventoryDisplay();
     }
     
+    // ============ ФУНКЦИИ СУНДУКА (РАБОЧИЕ) ============
+    function openChest(chest) {
+        if (currentOpenChest) return;
+        currentOpenChest = chest;
+        const panel = document.getElementById('chestPanel');
+        const itemsDiv = document.getElementById('chestItems');
+        
+        if (!chest.items || chest.items.length === 0) {
+            itemsDiv.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">📭 Сундук пуст</div>';
+        } else {
+            let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+            for (let item of chest.items) {
+                let icon = item.type === 'wood' ? '🪵' : (item.type === 'stone' ? '🪨' : (item.type === 'metal' ? '⚙️' : '💊'));
+                let name = item.type === 'wood' ? 'Дерево' : (item.type === 'stone' ? 'Камень' : (item.type === 'metal' ? 'Металл' : 'Аптечка'));
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#2a2a3e; border-radius:8px;">
+                    <span style="font-size:16px;">${icon} ${name}</span>
+                    <span style="color:#ffd700; font-weight:bold;">${item.amount} шт</span>
+                </div>`;
+            }
+            html += '</div>';
+            itemsDiv.innerHTML = html;
+        }
+        panel.classList.add('active');
+    }
+    
+    function closeChest() {
+        const panel = document.getElementById('chestPanel');
+        panel.classList.remove('active');
+        currentOpenChest = null;
+    }
+    
+    function takeAllFromChest() {
+        if (!currentOpenChest) return;
+        if (currentOpenChest.items && currentOpenChest.items.length > 0) {
+            let messages = [];
+            for (let item of currentOpenChest.items) {
+                let icon = item.type === 'wood' ? '🪵' : (item.type === 'stone' ? '🪨' : (item.type === 'metal' ? '⚙️' : '💊'));
+                if (item.type === 'wood') {
+                    resources.wood = Math.min(resourceLimit, resources.wood + item.amount);
+                    messages.push(`${icon} +${item.amount} дерева`);
+                } else if (item.type === 'stone') {
+                    resources.stone = Math.min(resourceLimit, resources.stone + item.amount);
+                    messages.push(`${icon} +${item.amount} камня`);
+                } else if (item.type === 'metal') {
+                    resources.metal = Math.min(resourceLimit, resources.metal + item.amount);
+                    messages.push(`${icon} +${item.amount} металла`);
+                } else if (item.type === 'medkit') {
+                    inventory.medkits += item.amount;
+                    messages.push(`💊 +${item.amount} аптечка`);
+                }
+            }
+            currentOpenChest.items = [];
+            updateUI();
+            updateResourceDisplay();
+            showLootMessage(`📦 Забрано: ${messages.join(', ')}`);
+        } else {
+            showToast("📭 Сундук пуст!", true);
+        }
+        closeChest();
+    }
+    
     function checkLoot() {
-        // РУБКА ДЕРЕВЬЕВ
+        // Рубка деревьев только топором
         for (let i = 0; i < trees.length; i++) {
             const t = trees[i];
             const dx = player.x - t.x, dy = player.y - t.y;
             if (Math.abs(dx) < player.radius + t.radius && Math.abs(dy) < player.radius + t.radius) {
-                if (t.takeDamage(player.damage)) {
+                let axeBonus = 1 + (skills.lumberjack * 0.2);
+                let totalDamage = axeDamage * axeBonus;
+                if (t.takeDamage(totalDamage)) {
                     trees.splice(i, 1);
-                    resources.wood += 5;
-                    showLootMessage("🪵 +5 дерева!");
+                    let woodAmount = 8 + Math.floor(Math.random() * 8);
+                    resources.wood = Math.min(resourceLimit, resources.wood + woodAmount);
+                    showLootMessage(`🪵 +${woodAmount} дерева!`);
                     updateResourceDisplay();
                     i--;
                 }
             }
         }
         
+        // Руины
         for (let r of ruins) {
-            if (r.looted && r.respawnTimer > 0) {
-                r.respawnTimer--;
-                if (r.respawnTimer === 0) r.looted = false;
-                continue;
-            }
+            if (r.looted && r.respawnTimer > 0) { r.respawnTimer--; if (r.respawnTimer === 0) r.looted = false; continue; }
             if (r.looted) continue;
-            
             const dx = player.x - r.x, dy = player.y - r.y;
             if (Math.abs(dx) < player.radius + r.radius && Math.abs(dy) < player.radius + r.radius) {
                 let msg = "";
@@ -978,39 +1282,31 @@
                     const rand = Math.random();
                     if (rand < 0.2) { inventory.medkits++; msg += "💊 "; }
                     else if (rand < 0.4) { inventory.foodCans++; msg += "🥫 "; }
-                    else if (rand < 0.6) { resources.scrap += 5; msg += "🔩 "; }
-                    else if (rand < 0.8) { resources.stone += 3; msg += "🪨 "; }
-                    else { resources.metal += 2; msg += "⚙️ "; }
+                    else if (rand < 0.6) { resources.metal = Math.min(resourceLimit, resources.metal + 8); msg += "⚙️ "; }
+                    else if (rand < 0.8) { resources.stone = Math.min(resourceLimit, resources.stone + 8); msg += "🪨 "; }
+                    else { resources.wood = Math.min(resourceLimit, resources.wood + 8); msg += "🪵 "; }
                 }
-                r.looted = true;
-                r.respawnTimer = 450;
+                r.looted = true; r.respawnTimer = 500;
                 showLootMessage(`🏚️ ${msg}`);
                 updateInventoryDisplay();
                 break;
             }
         }
         
-        for (let c of chests) {
-            if (c.looted && c.respawnTimer > 0) {
-                c.respawnTimer--;
-                if (c.respawnTimer === 0) c.looted = false;
-                continue;
-            }
-            if (c.looted) continue;
-            
+        // Сундуки в мире
+        for (let c of worldChests) {
             const dx = player.x - c.x, dy = player.y - c.y;
-            if (Math.abs(dx) < player.radius + c.radius && Math.abs(dy) < player.radius + c.radius) {
-                const rand = Math.random();
-                let msg = "";
-                if (rand < 0.2) { inventory.medkits++; msg = "💊 Аптечка +1"; }
-                else if (rand < 0.4) { inventory.foodCans++; msg = "🥫 Еда +1"; }
-                else if (rand < 0.6) { resources.scrap += 10; msg = "🔩 Запчасти +10"; }
-                else if (rand < 0.8) { resources.stone += 8; msg = "🪨 Камень +8"; }
-                else { resources.metal += 5; msg = "⚙️ Металл +5"; }
-                c.looted = true;
-                c.respawnTimer = 400;
-                showLootMessage(msg);
-                updateInventoryDisplay();
+            if (Math.abs(dx) < player.radius + 25 && Math.abs(dy) < player.radius + 25) {
+                openChest(c);
+                break;
+            }
+        }
+        
+        // Сундуки игрока
+        for (let c of playerChests) {
+            const dx = player.x - c.x, dy = player.y - c.y;
+            if (Math.abs(dx) < player.radius + 25 && Math.abs(dy) < player.radius + 25) {
+                openChest(c);
                 break;
             }
         }
@@ -1022,16 +1318,22 @@
             kills: kills, coins: coins, damage: player.damage, speed: player.speed,
             level: player.level, exp: player.exp, inventory: inventory, resources: resources,
             x: player.x, y: player.y, base: { x: base.x, y: base.y, hp: base.hp, maxHp: base.maxHp, level: base.level, owned: base.owned },
+            customWalls: customWalls.map(w => ({ x: w.x, y: w.y, type: w.type, direction: w.direction, hp: w.hp })),
+            farms: farms.map(f => ({ x: f.x, y: f.y, hp: f.hp })),
+            generators: generators.map(g => ({ x: g.x, y: g.y, hp: g.hp })),
+            storages: storages.map(s => ({ x: s.x, y: s.y, hp: s.hp })),
+            playerChests: playerChests.map(c => ({ x: c.x, y: c.y, hp: c.hp, items: c.items })),
+            turrets: turrets.map(t => ({ x: t.x, y: t.y })),
             wave: wave, statistics: statistics, skills: skills,
-            fireRate: player.fireRate, critChance: player.critChance, robotActive: robotActive
+            fireRate: player.fireRate, critChance: player.critChance,
+            workbenchLevel: workbenchLevel, robotActive: robotActive,
+            axeLevel: axeLevel, axeDamage: axeDamage
         };
         try {
             await fetch(`${SCRIPT_URL}?action=saveGameData&login=${currentUser}&gameId=${GAME_ID}&saveJson=${JSON.stringify(saveData)}`);
             showToast("✅ Сохранено!");
             hasExistingSave = true;
-        } catch(e) {
-            showToast("❌ Ошибка сохранения", true);
-        }
+        } catch(e) { showToast("❌ Ошибка сохранения", true); }
     }
     
     async function checkForSave() {
@@ -1047,9 +1349,7 @@
                 document.getElementById('continueGameBtn').classList.remove('has-save');
                 document.getElementById('continueGameBtn').innerHTML = "▶️ НАЧАТЬ ИГРУ";
             }
-        } catch(e) {
-            hasExistingSave = false;
-        }
+        } catch(e) { hasExistingSave = false; }
     }
     
     async function loadFromCloud() {
@@ -1059,264 +1359,126 @@
             if (data.success && data.saveData && data.saveData !== "{}") {
                 const save = JSON.parse(data.saveData);
                 gameMode = save.mode || "survival";
-                player.hp = save.hp || 100;
-                player.maxHp = save.maxHp || 100;
-                player.food = save.food || 100;
-                kills = save.kills || 0;
-                coins = save.coins || 500;
-                player.damage = save.damage || 15;
-                player.speed = save.speed || 5;
-                player.level = save.level || 1;
-                player.exp = save.exp || 0;
-                player.fireRate = save.fireRate || 8;
-                player.critChance = save.critChance || 0.1;
-                robotActive = save.robotActive || false;
-                resources = save.resources || { wood: 0, scrap: 30, stone: 0, metal: 0 };
-                if (robotActive) robot = new Robot();
+                player.hp = save.hp || 100; player.maxHp = save.maxHp || 100; player.food = save.food || 100;
+                kills = save.kills || 0; coins = save.coins || 500; player.damage = save.damage || 15;
+                player.speed = save.speed || 5; player.level = save.level || 1; player.exp = save.exp || 0;
+                player.fireRate = save.fireRate || 8; player.critChance = save.critChance || 0.1;
+                resources = save.resources || { wood: 0, metal: 0, stone: 0 };
                 inventory = save.inventory || { medkits: 2, foodCans: 3, armor: 0 };
                 if (save.x && save.y) { player.x = save.x; player.y = save.y; }
                 if (save.base) { base = save.base; if (base.owned) generateBaseWalls(); }
+                if (save.customWalls) customWalls = save.customWalls.map(w => new CustomWall(w.x, w.y, w.type, w.direction));
+                if (save.farms) farms = save.farms.map(f => new Farm(f.x, f.y));
+                if (save.generators) generators = save.generators.map(g => new Generator(g.x, g.y));
+                if (save.storages) storages = save.storages.map(s => new Storage(s.x, s.y));
+                if (save.playerChests) playerChests = save.playerChests.map(c => { let ch = new GameChest(c.x, c.y, true); ch.items = c.items; return ch; });
+                if (save.turrets) turrets = save.turrets.map(t => new Turret(t.x, t.y));
                 wave = save.wave || 1;
                 statistics = save.statistics || statistics;
                 skills = save.skills || skills;
+                workbenchLevel = save.workbenchLevel || 1;
+                robotActive = save.robotActive || false;
+                axeLevel = save.axeLevel || 1;
+                axeDamage = save.axeDamage || 15;
+                if (robotActive) robot = new Robot();
                 weapon.fireDelay = player.fireRate;
                 updateUI();
+                updateWorkbenchUI();
                 showToast("📀 Прогресс загружен!");
                 return true;
-            } else {
-                generateWorld();
-                showToast("💾 Новый мир создан!");
-                return false;
-            }
-        } catch(e) {
-            generateWorld();
-            showToast("⚠️ Офлайн режим", true);
-            return false;
-        }
+            } else { generateWorld(); showToast("💾 Новый мир создан!"); return false; }
+        } catch(e) { generateWorld(); showToast("⚠️ Офлайн режим", true); return false; }
     }
     
     function newGame() {
-        player = {
-            x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
-            hp: 100, maxHp: 100,
-            food: 100,
-            damage: 15,
-            critChance: 0.1,
-            fireRate: 8,
-            invincibleTimer: 0,
-            radius: 16,
-            speed: 5,
-            level: 1,
-            exp: 0,
-            expNeeded: 100,
-            skin: "normal"
-        };
-        kills = 0;
-        coins = 500;
-        resources = { wood: 0, scrap: 30, stone: 0, metal: 0 };
-        inventory = { medkits: 2, foodCans: 3, armor: 0 };
-        base = {
-            x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
-            hp: 0, maxHp: 0,
-            level: 0,
-            turretSlots: 0,
-            owned: false,
-            wallRadius: 90,
-            wallHp: []
-        };
-        baseDestroyed = false;
-        enemies = [];
-        bullets = [];
-        turrets = [];
-        wave = 1;
-        currentBoss = null;
-        raidActive = false;
-        robotActive = false;
-        skills = { warrior:0, tank:0, speed:0, crit:0, fireRate:0, regen:0, loot:0, vampire:0, builder:0, points:0 };
-        generateWorld();
-        updateUI();
-        showToast("🆕 Начата новая игра!");
+        player = { x: WORLD_SIZE / 2, y: WORLD_SIZE / 2, hp: 100, maxHp: 100, food: 100, damage: 15, critChance: 0.1, fireRate: 8, invincibleTimer: 0, radius: 16, speed: 5, level: 1, exp: 0, expNeeded: 100, skin: "normal" };
+        kills = 0; coins = 500; resources = { wood: 0, metal: 0, stone: 0 }; inventory = { medkits: 2, foodCans: 3, armor: 0 };
+        base = { x: WORLD_SIZE / 2, y: WORLD_SIZE / 2, hp: 0, maxHp: 0, level: 0, turretSlots: 0, owned: false, wallRadius: 90, wallHp: [] };
+        customWalls = []; farms = []; generators = []; storages = []; playerChests = []; turrets = [];
+        enemies = []; bullets = []; wave = 1; currentBoss = null; raidActive = false;
+        skills = { warrior:0, tank:0, speed:0, crit:0, fireRate:0, regen:0, loot:0, vampire:0, builder:0, lumberjack:0, points:0 };
+        workbenchLevel = 1; robotActive = false; axeLevel = 1; axeDamage = 15;
+        generateWorld(); updateUI(); updateWorkbenchUI(); showToast("🆕 Начата новая игра!");
     }
     
     function continueGame() {
         document.getElementById('menuOverlay').style.display = 'none';
         document.getElementById('gameUI').classList.remove('hidden');
-        gameStarted = true;
-        gameActive = true;
-        isPaused = false;
-        showToast("Добро пожаловать в Мёртвую Зону!");
+        gameStarted = true; gameActive = true; isPaused = false;
+        showToast("Добро пожаловать в Мёртвую Зону! Деревья рубятся только топором!");
     }
     
-    function pauseGame() {
-        if (!gameStarted) return;
-        isPaused = true;
-        document.getElementById('menuOverlay').style.display = 'flex';
-        document.getElementById('mainMenuPanel').classList.add('hidden');
-        document.getElementById('pauseMenuPanel').classList.remove('hidden');
+    function toggleBuildMode() {
+        buildMode = !buildMode;
+        showToast(buildMode ? "🏗️ РЕЖИМ СТРОЙКИ АКТИВИРОВАН" : "🔫 РЕЖИМ СТРЕЛЬБЫ", false);
     }
     
-    function resumeGame() {
-        isPaused = false;
-        document.getElementById('menuOverlay').style.display = 'none';
-        document.getElementById('mainMenuPanel').classList.remove('hidden');
-        document.getElementById('pauseMenuPanel').classList.add('hidden');
-    }
-    
-    function saveAndExit() {
-        saveToCloud();
-        document.getElementById('menuOverlay').style.display = 'flex';
-        document.getElementById('gameUI').classList.add('hidden');
-        document.getElementById('mainMenuPanel').classList.remove('hidden');
-        document.getElementById('pauseMenuPanel').classList.add('hidden');
-        gameStarted = false;
-        isPaused = false;
-    }
+    function pauseGame() { if (!gameStarted) return; isPaused = true; document.getElementById('menuOverlay').style.display = 'flex'; document.getElementById('mainMenuPanel').classList.add('hidden'); document.getElementById('pauseMenuPanel').classList.remove('hidden'); }
+    function resumeGame() { isPaused = false; document.getElementById('menuOverlay').style.display = 'none'; document.getElementById('mainMenuPanel').classList.remove('hidden'); document.getElementById('pauseMenuPanel').classList.add('hidden'); }
+    function saveAndExit() { saveToCloud(); document.getElementById('menuOverlay').style.display = 'flex'; document.getElementById('gameUI').classList.add('hidden'); document.getElementById('mainMenuPanel').classList.remove('hidden'); document.getElementById('pauseMenuPanel').classList.add('hidden'); gameStarted = false; isPaused = false; }
     
     function updateGame() {
         if (!gameStarted || !gameActive || isPaused) return;
         
         let moveX = 0, moveY = 0;
-        if (keys.w) moveY -= 1;
-        if (keys.s) moveY += 1;
-        if (keys.a) moveX -= 1;
-        if (keys.d) moveX += 1;
-        if (keys.ц) moveY -= 1;
-        if (keys.ы) moveY += 1;
-        if (keys.ф) moveX -= 1;
-        if (keys.в) moveX += 1;
+        if (keys.w) moveY -= 1; if (keys.s) moveY += 1; if (keys.a) moveX -= 1; if (keys.d) moveX += 1;
+        if (keys.ц) moveY -= 1; if (keys.ы) moveY += 1; if (keys.ф) moveX -= 1; if (keys.в) moveX += 1;
+        if (moveX !== 0 || moveY !== 0) { const len = Math.hypot(moveX, moveY); moveX /= len; moveY /= len; }
+        player.x = Math.min(Math.max(player.x + moveX * player.speed, 50), WORLD_SIZE - 50);
+        player.y = Math.min(Math.max(player.y + moveY * player.speed, 50), WORLD_SIZE - 50);
         
-        if (moveX !== 0 || moveY !== 0) {
-            const len = Math.hypot(moveX, moveY);
-            moveX /= len;
-            moveY /= len;
-        }
-        
-        let newX = player.x + moveX * player.speed;
-        let newY = player.y + moveY * player.speed;
-        player.x = Math.min(Math.max(newX, 50), WORLD_SIZE - 50);
-        player.y = Math.min(Math.max(newY, 50), WORLD_SIZE - 50);
-        
-        // ПРОВЕРКА БАЗЫ НА РАЗРУШЕНИЕ
-        if (base.owned && base.hp <= 0) {
-            base.owned = false;
-            baseDestroyed = true;
-            baseWalls = [];
-            turrets = [];
-            showToast("💥 БАЗА ПОЛНОСТЬЮ РАЗРУШЕНА! Постройте новую!", true);
-            updateUI();
-        }
-        
-        if (base.owned && !baseDestroyed) {
+        if (base.owned) {
             const distToBase = Math.hypot(player.x - base.x, player.y - base.y);
-            if (distToBase < 60 && !insideBase) {
-                insideBase = true;
-                showToast("🏠 Вы вошли на территорию базы!");
-                updateBasePanel();
-            } else if (distToBase > 100 && insideBase) {
-                insideBase = false;
-                showToast("🚪 Вы вышли с территории базы");
-                updateBasePanel();
-            }
+            if (distToBase < 60 && !insideBase) { insideBase = true; showToast("🏠 Вы вошли в базу!"); updateBasePanel(); }
+            else if (distToBase > 100 && insideBase) { insideBase = false; showToast("🚪 Вы вышли из базы"); updateBasePanel(); }
         }
         
-        camera.x = player.x - canvas.width / 2;
-        camera.y = player.y - canvas.height / 2;
+        camera.x = player.x - canvas.width / 2; camera.y = player.y - canvas.height / 2;
         camera.x = Math.min(Math.max(camera.x, 0), WORLD_SIZE - canvas.width);
         camera.y = Math.min(Math.max(camera.y, 0), WORLD_SIZE - canvas.height);
         
-        if (frame % 90 === 0 && !insideBase) {
-            player.food = Math.max(0, player.food - 1);
-            document.getElementById('food').innerHTML = Math.floor(player.food);
-            updateFoodWarning();
-        }
-        if (player.food <= 0 && frame % 60 === 0 && !insideBase) {
-            player.hp = Math.max(0, player.hp - 2);
-            document.getElementById('hp').innerHTML = Math.floor(player.hp);
-            if (player.hp <= 0) { gameActive = false; showToast("💀 Вы умерли от голода!", true); }
-        }
-        if (player.food > 70 && frame % 40 === 0 && player.hp < player.maxHp && !insideBase) {
-            player.hp = Math.min(player.maxHp, player.hp + 1 + (skills.regen));
-            document.getElementById('hp').innerHTML = Math.floor(player.hp);
-        }
+        if (frame % 90 === 0 && !insideBase) { player.food = Math.max(0, player.food - 1); document.getElementById('food').innerHTML = Math.floor(player.food); updateFoodWarning(); }
+        if (player.food <= 0 && frame % 60 === 0 && !insideBase) { player.hp = Math.max(0, player.hp - 3); document.getElementById('hp').innerHTML = Math.floor(player.hp); if (player.hp <= 0) { gameActive = false; showToast("💀 Вы умерли от голода!", true); } }
+        if (player.food > 70 && frame % 40 === 0 && player.hp < player.maxHp && !insideBase) { player.hp = Math.min(player.maxHp, player.hp + 1 + (skills.regen)); document.getElementById('hp').innerHTML = Math.floor(player.hp); }
         
-        if (gameMode === 'survival' && base.owned && !baseDestroyed && base.hp < base.maxHp && turrets.length > 0 && frame % 100 === 0) {
-            base.hp = Math.min(base.maxHp, base.hp + 5);
-            updateBasePanel();
-        }
+        if (gameMode === 'survival' && base.owned && base.hp < base.maxHp && turrets.length > 0 && frame % 100 === 0) { base.hp = Math.min(base.maxHp, base.hp + 8); updateBasePanel(); }
         
         if (gameMode === 'survival') {
-            if (enemies.length < 25 && !currentBoss && !raidActive && Math.random() < 0.008) {
-                spawnEnemy();
-            }
-            if (raidActive) {
-                raidTimer--;
-                if (raidTimer <= 0) { raidActive = false; showToast("Набег отбит!"); }
-            }
+            if (enemies.length < 30 && !currentBoss && !raidActive && Math.random() < 0.009) spawnEnemy();
+            if (raidActive) { raidTimer--; if (raidTimer <= 0) { raidActive = false; showToast("Набег отбит! База в безопасности."); } }
         } else {
-            if (waveInProgress && enemies.length < 30 && !currentBoss && spawnTimer <= 0 && enemiesToSpawn > 0) {
-                spawnEnemy();
-                enemiesToSpawn--;
-                spawnTimer = 10;
-            } else if (spawnTimer > 0) {
-                spawnTimer--;
-            }
-            if (enemiesToSpawn === 0 && enemies.length === 0 && !currentBoss) {
-                waveInProgress = false;
-            }
+            if (waveInProgress && enemies.length < 30 && !currentBoss && spawnTimer <= 0 && enemiesToSpawn > 0) { spawnEnemy(); enemiesToSpawn--; spawnTimer = 12; }
+            else if (spawnTimer > 0) spawnTimer--;
+            if (enemiesToSpawn === 0 && enemies.length === 0 && !currentBoss) waveInProgress = false;
         }
         
-        // СТРЕЛЬБА - ТЕПЕРЬ МОЖНО СТРЕЛЯТЬ ВНУТРИ БАЗЫ!
         if (weapon.cooldown > 0) weapon.cooldown--;
-        if (weapon.cooldown === 0 && (mouseDown || settings.autoShoot)) {
-            shoot();
-            weapon.cooldown = weapon.fireDelay;
-        }
+        if (weapon.cooldown === 0 && (mouseDown || settings.autoShoot) && !buildMode) { shoot(); weapon.cooldown = weapon.fireDelay; }
         
         bullets = bullets.filter(b => {
             if (!b.update()) return false;
-            
-            if (currentBoss) {
-                const dx = b.x - currentBoss.x, dy = b.y - currentBoss.y;
-                if (Math.abs(dx) < b.radius + currentBoss.radius && Math.abs(dy) < b.radius + currentBoss.radius) {
-                    let damage = b.damage;
-                    if (Math.random() < player.critChance) damage *= 2;
-                    if (currentBoss.takeDamage(damage)) {
-                        addCoins(currentBoss.reward);
-                        statistics.bossKills++;
-                        addExp(100);
-                        addKill();
-                        for (let j = 0; j < 30; j++) particles.push(new Particle(currentBoss.x, currentBoss.y, '#ff0000'));
-                        currentBoss = null;
-                        document.getElementById('bossUI').classList.add('hidden');
-                        showToast("🎉 БОСС ПОБЕЖДЕН! 🎉");
-                    }
-                    if (currentBoss) {
-                        const percent = (currentBoss.hp / currentBoss.maxHp) * 100;
-                        document.getElementById('bossHpFill').style.width = percent + '%';
-                    }
-                    return false;
+            if (currentBoss && Math.abs(b.x - currentBoss.x) < b.radius + currentBoss.radius && Math.abs(b.y - currentBoss.y) < b.radius + currentBoss.radius) {
+                let damage = b.damage; if (Math.random() < player.critChance) damage *= 2;
+                if (currentBoss.takeDamage(damage)) {
+                    addCoins(currentBoss.reward); statistics.bossKills++; addExp(120); addKill();
+                    for (let j = 0; j < 40; j++) particles.push(new Particle(currentBoss.x, currentBoss.y, '#ff0000'));
+                    currentBoss = null; document.getElementById('bossUI').classList.add('hidden');
+                    showToast("🎉 МЕГА-БОСС ПОБЕЖДЕН! +1000💰 🎉");
                 }
+                if (currentBoss) document.getElementById('bossHpFill').style.width = (currentBoss.hp / currentBoss.maxHp * 100) + '%';
+                return false;
             }
-            
             for (let i = 0; i < enemies.length; i++) {
                 const e = enemies[i];
-                const dx = b.x - e.x, dy = b.y - e.y;
-                if (Math.abs(dx) < b.radius + e.radius && Math.abs(dy) < b.radius + e.radius) {
-                    let damage = b.damage;
-                    if (Math.random() < player.critChance) damage *= 2;
+                if (Math.abs(b.x - e.x) < b.radius + e.radius && Math.abs(b.y - e.y) < b.radius + e.radius) {
+                    let damage = b.damage; if (Math.random() < player.critChance) damage *= 2;
                     if (e.takeDamage(damage)) {
-                        if (skills.vampire > 0 && Math.random() < 0.3) { player.hp = Math.min(player.maxHp, player.hp + 5); updateUI(); }
+                        if (skills.vampire > 0 && Math.random() < 0.35) { player.hp = Math.min(player.maxHp, player.hp + 6); updateUI(); }
                         if (skills.explosive > 0 && Math.random() < 0.15) {
-                            for (let other of enemies) {
-                                if (Math.hypot(other.x - e.x, other.y - e.y) < 70) other.hp -= 30;
-                            }
+                            for (let other of enemies) if (Math.hypot(other.x - e.x, other.y - e.y) < 70) other.hp -= 35;
                         }
-                        enemies.splice(i, 1);
-                        addCoins(e.reward);
-                        addKill();
-                        if (settings.particles) {
-                            for (let j = 0; j < 6; j++) particles.push(new Particle(e.x, e.y, e.color));
-                        }
+                        enemies.splice(i, 1); addCoins(e.reward); addKill();
+                        if (settings.particles) for (let j = 0; j < 7; j++) particles.push(new Particle(e.x, e.y, e.color));
                     }
                     return false;
                 }
@@ -1325,15 +1487,15 @@
         });
         
         turrets.forEach(t => t.update());
-        if (robotActive && robot) robot.update();
+        farms.forEach(f => f.update());
+        generators.forEach(g => g.update());
         if (currentBoss) currentBoss.update();
         
         for (let i = 0; i < enemies.length; i++) {
             enemies[i].update();
-            
-            if (insideBase && base.owned && !baseDestroyed) {
+            if (insideBase && base.owned) {
                 const distToBase = Math.hypot(enemies[i].x - base.x, enemies[i].y - base.y);
-                if (distToBase < enemies[i].radius + 30 && enemies[i].attackCooldown === 0 && base.hp > 0) {
+                if (distToBase < enemies[i].radius + 35 && enemies[i].attackCooldown === 0 && base.hp > 0) {
                     base.hp -= enemies[i].damage;
                     enemies[i].attackCooldown = enemies[i].attackSpeed;
                     if (base.hp <= 0) showToast("🏠 База разрушается!", true);
@@ -1342,91 +1504,59 @@
             }
         }
         
+        for (let i = 0; i < customWalls.length; i++) {
+            for (let e of enemies) {
+                if (Math.hypot(e.x - customWalls[i].x, e.y - customWalls[i].y) < e.radius + 12 && e.attackCooldown === 0) {
+                    let wallDamage = e.type === 'tank' ? 12 : (e.type === 'fast' ? 5 : 8);
+                    customWalls[i].takeDamage(wallDamage);
+                    e.attackCooldown = e.attackSpeed;
+                    if (customWalls[i].hp <= 0) { customWalls.splice(i, 1); i--; showLootMessage(`🧱 Стена разрушена!`); }
+                    break;
+                }
+            }
+        }
+        
         if (player.invincibleTimer > 0) player.invincibleTimer--;
         if (abilityCooldown > 0) abilityCooldown--;
         checkLoot();
         
-        if (settings.particles) {
-            particles = particles.filter(p => p.update());
-        } else {
-            particles = [];
-        }
-        
+        if (settings.particles) particles = particles.filter(p => p.update());
+        else particles = [];
         frame++;
     }
     
     function drawGame() {
         if (!gameStarted) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#2a3a2a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#2a3a2a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.strokeStyle = '#4a6a4a';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 100) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, canvas.height);
-            ctx.stroke();
-        }
-        for (let i = 0; i < canvas.height; i += 100) {
-            ctx.beginPath();
-            ctx.moveTo(0, i);
-            ctx.lineTo(canvas.width, i);
-            ctx.stroke();
-        }
+        ctx.strokeStyle = '#4a6a4a'; ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 100) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+        for (let i = 0; i < canvas.height; i += 100) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
         
         for (let t of trees) t.draw(ctx, camera.x, camera.y);
-        
         for (let r of ruins) {
             const sx = r.x - camera.x, sy = r.y - camera.y;
             if (sx > -150 && sx < canvas.width + 150) {
-                ctx.fillStyle = '#7a6a5a';
-                ctx.fillRect(sx - r.radius, sy - r.radius / 2, r.radius * 2, r.radius);
-                if (!r.looted) {
-                    ctx.fillStyle = '#ffd700';
-                    ctx.fillRect(sx - 8, sy - 15, 16, 10);
-                }
+                ctx.fillStyle = '#7a6a5a'; ctx.fillRect(sx - r.radius, sy - r.radius / 2, r.radius * 2, r.radius);
+                if (!r.looted) { ctx.fillStyle = '#ffd700'; ctx.fillRect(sx - 8, sy - 15, 16, 10); }
             }
         }
+        for (let c of worldChests) { c.draw(ctx, camera.x, camera.y); }
         
-        for (let c of chests) {
-            if (c.looted) continue;
-            const sx = c.x - camera.x, sy = c.y - camera.y;
-            if (sx > -80 && sx < canvas.width + 80) {
-                ctx.fillStyle = '#daa520';
-                ctx.fillRect(sx - 10, sy - 7, 20, 14);
-                ctx.fillStyle = '#ffd700';
-                ctx.fillRect(sx - 6, sy - 11, 12, 6);
-            }
-        }
+        for (let w of customWalls) w.draw(ctx, camera.x, camera.y);
+        for (let f of farms) f.draw(ctx, camera.x, camera.y);
+        for (let g of generators) g.draw(ctx, camera.x, camera.y);
+        for (let s of storages) s.draw(ctx, camera.x, camera.y);
+        for (let c of playerChests) c.draw(ctx, camera.x, camera.y);
         
-        if (gameMode === 'survival' && base.owned && !baseDestroyed) {
-            for (let i = 0; i < baseWalls.length; i++) {
-                const w = baseWalls[i];
-                const sx = w.x - camera.x, sy = w.y - camera.y;
-                if (sx > -100 && sx < canvas.width + 100) {
-                    const hpPercent = base.wallHp[i] / (500 + base.level * 80);
-                    ctx.fillStyle = '#8B4513';
-                    ctx.fillRect(sx - 10, sy - 10, 20, 20);
-                    ctx.fillStyle = '#ff3333';
-                    ctx.fillRect(sx - 8, sy - 15, 16, 4);
-                    ctx.fillStyle = '#33ff33';
-                    ctx.fillRect(sx - 8, sy - 15, 16 * hpPercent, 4);
-                }
-            }
-            
+        if (gameMode === 'survival' && base.owned) {
             const bs = { x: base.x - camera.x, y: base.y - camera.y };
-            ctx.fillStyle = '#666666';
-            ctx.fillRect(bs.x - 35, bs.y - 25, 70, 50);
-            ctx.fillStyle = '#888888';
-            ctx.fillRect(bs.x - 30, bs.y - 20, 60, 40);
+            ctx.fillStyle = '#666666'; ctx.fillRect(bs.x - 40, bs.y - 30, 80, 60);
+            ctx.fillStyle = '#888888'; ctx.fillRect(bs.x - 35, bs.y - 25, 70, 50);
             const hpPercent = base.hp / base.maxHp;
-            ctx.fillStyle = '#ff3333';
-            ctx.fillRect(bs.x - 30, bs.y - 30, 60, 6);
-            ctx.fillStyle = '#33ff33';
-            ctx.fillRect(bs.x - 30, bs.y - 30, 60 * hpPercent, 6);
-            
+            ctx.fillStyle = '#ff3333'; ctx.fillRect(bs.x - 35, bs.y - 35, 70, 8);
+            ctx.fillStyle = '#33ff33'; ctx.fillRect(bs.x - 35, bs.y - 35, 70 * hpPercent, 8);
             turrets.forEach(t => t.draw(ctx, camera.x, camera.y));
         }
         
@@ -1434,262 +1564,86 @@
         enemies.forEach(e => e.draw(ctx, camera.x, camera.y));
         bullets.forEach(b => b.draw(ctx, camera.x, camera.y));
         particles.forEach(p => p.draw(ctx, camera.x, camera.y));
-        if (robotActive && robot) robot.draw(ctx, camera.x, camera.y);
         
         const ps = { x: player.x - camera.x, y: player.y - camera.y };
-        ctx.beginPath();
-        ctx.arc(ps.x, ps.y, player.radius, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, player.radius, 0, Math.PI * 2);
         const grad = ctx.createRadialGradient(ps.x - 5, ps.y - 5, 5, ps.x, ps.y, 20);
-        grad.addColorStop(0, '#f7931a');
-        grad.addColorStop(1, '#ff5500');
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(ps.x, ps.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
+        grad.addColorStop(0, '#f7931a'); grad.addColorStop(1, '#ff5500');
+        ctx.fillStyle = grad; ctx.fill();
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, 8, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
         
-        ctx.beginPath();
-        ctx.moveTo(ps.x, ps.y);
-        ctx.lineTo(mouseX, mouseY);
-        ctx.strokeStyle = '#f7931a';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        
-        ctx.beginPath();
-        ctx.arc(mouseX, mouseY, 12, 0, Math.PI * 2);
-        ctx.strokeStyle = '#f7931a';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(mouseX - 15, mouseY);
-        ctx.lineTo(mouseX + 15, mouseY);
-        ctx.moveTo(mouseX, mouseY - 15);
-        ctx.lineTo(mouseX, mouseY + 15);
-        ctx.stroke();
-        
-        if (!gameActive) {
-            ctx.font = 'bold 36px monospace';
-            ctx.fillStyle = '#ff4444';
-            ctx.fillText('GAME OVER', canvas.width / 2 - 120, canvas.height / 2);
+        if (!buildMode) {
+            ctx.beginPath(); ctx.moveTo(ps.x, ps.y); ctx.lineTo(mouseX, mouseY); ctx.strokeStyle = '#f7931a'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.beginPath(); ctx.arc(mouseX, mouseY, 12, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(mouseX - 15, mouseY); ctx.lineTo(mouseX + 15, mouseY); ctx.moveTo(mouseX, mouseY - 15); ctx.lineTo(mouseX, mouseY + 15); ctx.stroke();
+        } else {
+            ctx.beginPath(); ctx.arc(mouseX, mouseY, 20, 0, Math.PI * 2); ctx.strokeStyle = '#00ff00'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = 'rgba(0,255,0,0.3)'; ctx.fill();
         }
         
-        if (gameMode === 'arena' && !waveInProgress && enemies.length === 0 && !currentBoss && gameActive) {
-            ctx.font = 'bold 24px monospace';
-            ctx.fillStyle = '#f7931a';
-            ctx.fillText(`ВОЛНА ${wave + 1}`, canvas.width / 2 - 100, canvas.height / 2);
-        }
-        
-        if (raidActive) {
-            ctx.font = 'bold 16px monospace';
-            ctx.fillStyle = '#ff4444';
-            ctx.fillText(`🧟 НАБЕГ! ${Math.ceil(raidTimer / 60)}с`, 20, 80);
-        }
-        
-        if (currentBoss) {
-            ctx.font = 'bold 16px monospace';
-            ctx.fillStyle = '#ff0000';
-            ctx.fillText(`💀 БОСС АТАКУЕТ! 💀`, canvas.width - 200, 100);
-        }
+        if (!gameActive) { ctx.font = 'bold 36px monospace'; ctx.fillStyle = '#ff4444'; ctx.fillText('GAME OVER', canvas.width / 2 - 120, canvas.height / 2); }
+        if (gameMode === 'arena' && !waveInProgress && enemies.length === 0 && !currentBoss && gameActive) { ctx.font = 'bold 24px monospace'; ctx.fillStyle = '#f7931a'; ctx.fillText(`ВОЛНА ${wave + 1}`, canvas.width / 2 - 100, canvas.height / 2); }
+        if (raidActive) { ctx.font = 'bold 18px monospace'; ctx.fillStyle = '#ff4444'; ctx.fillText(`🧟 МАССОВЫЙ НАБЕГ! ${Math.ceil(raidTimer / 60)}с`, 20, 80); }
+        if (currentBoss) { ctx.font = 'bold 16px monospace'; ctx.fillStyle = '#ff0000'; ctx.fillText(`💀 БОСС АТАКУЕТ! 💀`, canvas.width - 200, 100); }
+        if (buildMode) { ctx.font = 'bold 20px monospace'; ctx.fillStyle = '#00ff00'; ctx.fillText('🏗️ РЕЖИМ СТРОЙКИ', canvas.width - 200, 50); }
     }
     
-    function gameLoop() {
-        updateGame();
-        drawGame();
-        requestAnimationFrame(gameLoop);
-    }
+    function gameLoop() { updateGame(); drawGame(); requestAnimationFrame(gameLoop); }
     
     function init() {
-        checkForSave();
-        gameLoop();
-        
-        document.getElementById('continueGameBtn').onclick = async () => {
-            if (hasExistingSave) {
-                await loadFromCloud();
-            } else {
-                newGame();
-            }
-            continueGame();
-        };
-        document.getElementById('newGameBtn').onclick = () => {
-            newGame();
-            continueGame();
-        };
+        checkForSave(); gameLoop();
+        document.getElementById('continueGameBtn').onclick = async () => { if (hasExistingSave) await loadFromCloud(); else newGame(); continueGame(); };
+        document.getElementById('newGameBtn').onclick = () => { newGame(); continueGame(); };
         document.getElementById('resumeGameBtn').onclick = resumeGame;
         document.getElementById('saveAndExitBtn').onclick = saveAndExit;
-        document.getElementById('settingsMenuBtn').onclick = () => {
-            document.getElementById('mainMenuPanel').classList.add('hidden');
-            document.getElementById('settingsMenu').classList.add('active');
-        };
-        document.getElementById('statsMenuBtn').onclick = () => {
-            document.getElementById('mainMenuPanel').classList.add('hidden');
-            document.getElementById('statsMenu').classList.add('active');
-            document.getElementById('statKills').innerHTML = statistics.totalKills;
-            document.getElementById('statCoins').innerHTML = Math.floor(statistics.totalCoins);
-            document.getElementById('statMaxLevel').innerHTML = statistics.maxLevel;
-            document.getElementById('statBossKills').innerHTML = statistics.bossKills;
-            document.getElementById('statBestWave').innerHTML = statistics.bestWave;
-        };
-        document.getElementById('helpMenuBtn').onclick = () => {
-            document.getElementById('mainMenuPanel').classList.add('hidden');
-            document.getElementById('helpMenu').classList.add('active');
-        };
-        document.getElementById('resetProgressBtn').onclick = () => {
-            if (confirm("Сбросить прогресс?")) {
-                localStorage.removeItem('beam_stats_' + currentUser);
-                saveToCloud();
-                location.reload();
-            }
-        };
-        document.getElementById('saveSettingsBtn').onclick = () => {
-            settings.particles = document.getElementById('particlesToggle').checked;
-            settings.autoShoot = document.getElementById('autoShootToggle').checked;
-            localStorage.setItem('beam_settings', JSON.stringify(settings));
-            showToast("Настройки сохранены!");
-        };
-        document.getElementById('backToMainFromSettings').onclick = () => {
-            document.getElementById('settingsMenu').classList.remove('active');
-            document.getElementById('mainMenuPanel').classList.remove('hidden');
-        };
-        document.getElementById('backToMainFromStats').onclick = () => {
-            document.getElementById('statsMenu').classList.remove('active');
-            document.getElementById('mainMenuPanel').classList.remove('hidden');
-        };
-        document.getElementById('backToMainFromHelp').onclick = () => {
-            document.getElementById('helpMenu').classList.remove('active');
-            document.getElementById('mainMenuPanel').classList.remove('hidden');
-        };
+        document.getElementById('settingsMenuBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.add('hidden'); document.getElementById('settingsMenu').classList.add('active'); };
+        document.getElementById('statsMenuBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.add('hidden'); document.getElementById('statsMenu').classList.add('active'); document.getElementById('statKills').innerHTML = statistics.totalKills; document.getElementById('statCoins').innerHTML = Math.floor(statistics.totalCoins); document.getElementById('statMaxLevel').innerHTML = statistics.maxLevel; document.getElementById('statBossKills').innerHTML = statistics.bossKills; document.getElementById('statBestWave').innerHTML = statistics.bestWave; };
+        document.getElementById('helpMenuBtn').onclick = () => { document.getElementById('mainMenuPanel').classList.add('hidden'); document.getElementById('helpMenu').classList.add('active'); };
+        document.getElementById('resetProgressBtn').onclick = () => { if(confirm("Сбросить прогресс?")) { localStorage.removeItem('beam_stats_' + currentUser); saveToCloud(); location.reload(); } };
+        document.getElementById('saveSettingsBtn').onclick = () => { settings.particles = document.getElementById('particlesToggle').checked; settings.autoShoot = document.getElementById('autoShootToggle').checked; localStorage.setItem('beam_settings', JSON.stringify(settings)); showToast("Настройки сохранены!"); };
+        document.getElementById('backToMainFromSettings').onclick = () => { document.getElementById('settingsMenu').classList.remove('active'); document.getElementById('mainMenuPanel').classList.remove('hidden'); };
+        document.getElementById('backToMainFromStats').onclick = () => { document.getElementById('statsMenu').classList.remove('active'); document.getElementById('mainMenuPanel').classList.remove('hidden'); };
+        document.getElementById('backToMainFromHelp').onclick = () => { document.getElementById('helpMenu').classList.remove('active'); document.getElementById('mainMenuPanel').classList.remove('hidden'); };
         document.getElementById('saveBtn').onclick = saveToCloud;
-        document.getElementById('craftBtn').onclick = () => {
-            document.getElementById('craftPanel').classList.toggle('active');
-            updateResourceDisplay();
-        };
-        document.getElementById('skillTreeBtn').onclick = () => {
-            document.getElementById('skillTree').classList.add('active');
-            document.getElementById('skillPoints').innerHTML = `Очков: ${skills.points}`;
-        };
-        document.getElementById('closeSkillTree').onclick = () => {
-            document.getElementById('skillTree').classList.remove('active');
-        };
+        document.getElementById('craftBtn').onclick = () => { document.getElementById('craftPanel').classList.toggle('active'); updateResourceDisplay(); };
+        document.getElementById('workbenchBtn').onclick = () => { document.getElementById('workbenchPanel').classList.toggle('active'); updateResourceDisplay(); updateWorkbenchUI(); };
+        document.getElementById('buildModeBtn').onclick = toggleBuildMode;
+        document.getElementById('skillTreeBtn').onclick = () => { document.getElementById('skillTree').classList.add('active'); document.getElementById('skillPoints').innerHTML = `Очков: ${skills.points}`; };
+        document.getElementById('closeSkillTree').onclick = () => { document.getElementById('skillTree').classList.remove('active'); };
+        document.getElementById('takeAllBtn').onclick = takeAllFromChest;
+        document.getElementById('closeChestBtn').onclick = closeChest;
         
-        document.querySelectorAll('.craft-btn').forEach(btn => {
-            btn.onclick = () => {
-                if (btn.dataset.craft === 'closeCraft') {
-                    document.getElementById('craftPanel').classList.remove('active');
-                } else {
-                    craftItem(btn.dataset.craft);
-                }
-            };
-        });
-        
-        document.querySelectorAll('.skill-btn').forEach(btn => {
-            btn.onclick = () => applySkill(btn.dataset.skill);
-        });
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.onclick = () => {
-                if (gameMode !== btn.dataset.mode) {
-                    gameMode = btn.dataset.mode;
-                    wave = 1;
-                    enemiesToSpawn = 5;
-                    waveInProgress = true;
-                    enemies = [];
-                    bullets = [];
-                    currentBoss = null;
-                    raidActive = false;
-                    player.hp = player.maxHp;
-                    player.food = 100;
-                    insideBase = false;
-                    if (gameMode === 'survival' && base.owned) base.hp = base.maxHp;
-                    updateUI();
-                    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    showToast(`Режим ${gameMode === 'survival' ? 'ВЫЖИВАНИЕ' : 'АРЕНА'} активирован!`);
-                }
-            };
-        });
+        document.querySelectorAll('.craft-btn').forEach(btn => { btn.onclick = () => { if (btn.dataset.craft === 'closeCraft') document.getElementById('craftPanel').classList.remove('active'); else if (btn.dataset.craft === 'closeWorkbench') document.getElementById('workbenchPanel').classList.remove('active'); else if (btn.dataset.craft === 'upgradeWorkbench') upgradeWorkbench(); else craftItem(btn.dataset.craft); }; });
+        document.querySelectorAll('.direction-btn').forEach(btn => { btn.onclick = () => { if (btn.dataset.dir === 'cancel') { document.getElementById('directionPanel').style.display = 'none'; pendingCraft = null; } else craftWithDirection(parseInt(btn.dataset.dir)); }; });
+        document.querySelectorAll('.skill-btn').forEach(btn => { btn.onclick = () => applySkill(btn.dataset.skill); });
+        document.querySelectorAll('.mode-btn').forEach(btn => { btn.onclick = () => { if (gameMode !== btn.dataset.mode) { gameMode = btn.dataset.mode; wave = 1; enemiesToSpawn = 5; waveInProgress = true; enemies = []; bullets = []; currentBoss = null; raidActive = false; player.hp = player.maxHp; player.food = 100; insideBase = false; if (gameMode === 'survival' && base.owned) base.hp = base.maxHp; updateUI(); document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); showToast(`Режим ${gameMode === 'survival' ? 'ВЫЖИВАНИЕ' : 'АРЕНА'} активирован!`); } }; });
         
         const updateMouse = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            let cx, cy;
-            if (e.touches) {
-                cx = e.touches[0].clientX;
-                cy = e.touches[0].clientY;
-                e.preventDefault();
-            } else {
-                cx = e.clientX;
-                cy = e.clientY;
-            }
-            mouseX = (cx - rect.left) * scaleX;
-            mouseY = (cy - rect.top) * scaleY;
-            mouseX = Math.min(Math.max(mouseX, 0), canvas.width);
-            mouseY = Math.min(Math.max(mouseY, 0), canvas.height);
+            const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+            let cx, cy; if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; e.preventDefault(); } else { cx = e.clientX; cy = e.clientY; }
+            mouseX = (cx - rect.left) * scaleX; mouseY = (cy - rect.top) * scaleY;
+            mouseX = Math.min(Math.max(mouseX, 0), canvas.width); mouseY = Math.min(Math.max(mouseY, 0), canvas.height);
         };
-        
-        canvas.addEventListener('mousemove', updateMouse);
-        canvas.addEventListener('mousedown', () => mouseDown = true);
-        window.addEventListener('mouseup', () => mouseDown = false);
-        canvas.addEventListener('touchmove', updateMouse);
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            mouseDown = true;
-            updateMouse(e);
-        });
-        canvas.addEventListener('touchend', () => mouseDown = false);
+        canvas.addEventListener('mousemove', updateMouse); canvas.addEventListener('mousedown', () => mouseDown = true); window.addEventListener('mouseup', () => mouseDown = false);
+        canvas.addEventListener('touchmove', updateMouse); canvas.addEventListener('touchstart', (e) => { e.preventDefault(); mouseDown = true; updateMouse(e); }); canvas.addEventListener('touchend', () => mouseDown = false);
         
         window.addEventListener('keydown', (e) => {
             const k = e.key.toLowerCase();
-            if (k === 'w') keys.w = true;
-            if (k === 's') keys.s = true;
-            if (k === 'a') keys.a = true;
-            if (k === 'd') keys.d = true;
-            if (k === 'ц') keys.ц = true;
-            if (k === 'ы') keys.ы = true;
-            if (k === 'ф') keys.ф = true;
-            if (k === 'в') keys.в = true;
-            if (k === '1') useItem('medkit');
-            if (k === '2') useItem('food');
-            if (k === 'q') useAbility();
+            if (k === 'w') keys.w = true; if (k === 's') keys.s = true; if (k === 'a') keys.a = true; if (k === 'd') keys.d = true;
+            if (k === 'ц') keys.ц = true; if (k === 'ы') keys.ы = true; if (k === 'ф') keys.ф = true; if (k === 'в') keys.в = true;
+            if (k === '1') useItem('medkit'); if (k === '2') useItem('food'); if (k === 'q') useAbility();
             if (k === 'c') document.getElementById('craftPanel').classList.toggle('active');
+            if (k === 'v') document.getElementById('workbenchPanel').classList.toggle('active');
+            if (k === 'b') toggleBuildMode();
             if (k === 'g') document.getElementById('skillTree').classList.toggle('active');
-            if (k === 'escape') {
-                if (gameStarted && !isPaused) {
-                    pauseGame();
-                } else if (isPaused) {
-                    resumeGame();
-                }
-            }
+            if (k === 'escape') { if (gameStarted && !isPaused) pauseGame(); else if (isPaused) resumeGame(); }
         });
-        
-        window.addEventListener('keyup', (e) => {
-            const k = e.key.toLowerCase();
-            if (k === 'w') keys.w = false;
-            if (k === 's') keys.s = false;
-            if (k === 'a') keys.a = false;
-            if (k === 'd') keys.d = false;
-            if (k === 'ц') keys.ц = false;
-            if (k === 'ы') keys.ы = false;
-            if (k === 'ф') keys.ф = false;
-            if (k === 'в') keys.в = false;
-        });
+        window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k === 'w') keys.w = false; if (k === 's') keys.s = false; if (k === 'a') keys.a = false; if (k === 'd') keys.d = false; if (k === 'ц') keys.ц = false; if (k === 'ы') keys.ы = false; if (k === 'ф') keys.ф = false; if (k === 'в') keys.в = false; });
         
         const savedSettings = localStorage.getItem('beam_settings');
-        if (savedSettings) {
-            try {
-                const s = JSON.parse(savedSettings);
-                settings = { ...settings, ...s };
-                document.getElementById('particlesToggle').checked = settings.particles;
-                document.getElementById('autoShootToggle').checked = settings.autoShoot;
-            } catch(e) {}
-        }
+        if (savedSettings) { try { const s = JSON.parse(savedSettings); settings = { ...settings, ...s }; document.getElementById('particlesToggle').checked = settings.particles; document.getElementById('autoShootToggle').checked = settings.autoShoot; } catch(e) {} }
         
-        setInterval(() => {
-            if (gameStarted && gameActive && !isPaused) saveToCloud();
-        }, 60000);
+        setInterval(() => { if (gameStarted && gameActive && !isPaused) saveToCloud(); }, 60000);
     }
     
     window.useItem = useItem;
