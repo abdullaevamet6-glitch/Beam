@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CHEF STUDIO - Кулинарная мастерская</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', 'Segoe UI', monospace;
+            padding: 20px;
+        }
+        
+        .game-container {
+            width: 1400px;
+            max-width: 100%;
+            background: #0f0f1a;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(247,147,26,0.3);
+            border: 1px solid #f7931a;
+        }
+        
+        .top-bar {
+            background: #1a1a2e;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f7931a;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .balance-box, .level-box, .xp-box {
+            background: #2c3e66;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .balance-box span, .level-box span, .xp-box span {
+            color: #f7931a;
+        }
+        
+        .game-main {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            min-height: 600px;
+        }
+        
+        /* ЛЕВАЯ ЧАСТЬ - КУХНЯ (рабочая зона) */
+        .kitchen-workspace {
+            flex: 2;
+            background: #1a1a2a;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .kitchen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .selected-dish {
+            background: #f7931a;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: black;
+            font-weight: bold;
+        }
+        
+        .cooking-area {
+            background: #0f0f18;
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .ingredients-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #1a1a2a;
+            border-radius: 20px;
+            min-height: 150px;
+        }
+        
+        .ingredient-item {
+            background: #2c3e66;
+            border-radius: 60px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .ingredient-item:active {
+            cursor: grabbing;
+        }
+        
+        .ingredient-item.dragging {
+            opacity: 0.5;
+        }
+        
+        .bowl-area {
+            background: #2a2a3a;
+            border-radius: 50%;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed #f7931a;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .bowl-area.drag-over {
+            border-color: #4caf50;
+            background: #3a3a4a;
+            transform: scale(1.02);
+        }
+        
+        .bowl-emoji {
+            font-size: 60px;
+        }
+        
+        .bowl-contents {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            color: #ffd700;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: #2c3e66;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        
+        .action-btn:hover {
+            background: #f7931a;
+            transform: scale(1.02);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* ПРАВАЯ ЧАСТЬ - МЕНЮ РЕЦЕПТОВ */
+        .recipes-panel {
+            flex: 1;
+            background: #1a1a2a;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #2a2a3a;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .recipes-title {
+            color: #f7931a;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .recipe-card {
+            background: #0f0f18;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .recipe-card:hover {
+            transform: translateX(5px);
+            border-color: #f7931a;
+        }
+        
+        .recipe-card.selected {
+            border-color: #f7931a;
+            background: #1a1a2e;
+            box-shadow: 0 0 10px rgba(247,147,26,0.3);
+        }
+        
+        .recipe-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .recipe-emoji {
+            font-size: 30px;
+        }
+        
+        .recipe-name {
+            font-weight: bold;
+            flex: 1;
+        }
+        
+        .recipe-price {
+            color: #f7931a;
+        }
+        
+        .recipe-ingredients {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 8px;
+            padding-left: 40px;
+        }
+        
+        .recipe-difficulty {
+            font-size: 0.7rem;
+            color: #ffd700;
+            margin-top: 5px;
+            padding-left: 40px;
+        }
+        
+        /* ИНВЕНТАРЬ (нижняя панель) */
+        .inventory-panel {
+            background: #1a1a2e;
+            padding: 15px 25px;
+            border-top: 1px solid #2a2a3a;
+        }
+        
+        .inventory-title {
+            color: #f7931a;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .inventory-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .inventory-item {
+            background: #0f0f18;
+            padding: 8px 20px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .inventory-count {
+            color: #f7931a;
+            font-weight: bold;
+        }
+        
+        .cooking-progress {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            border-radius: 30px;
+            padding: 30px;
+            text-align: center;
+            z-index: 200;
+            min-width: 400px;
+            border: 2px solid #f7931a;
+        }
+        
+        .cooking-progress.hidden {
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #2a2a3a;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #f7931a;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        .step-description {
+            font-size: 1.2rem;
+            margin: 15px 0;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f7931a;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 30px;
+            z-index: 200;
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+        }
+        
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .menu-overlay.hidden {
+            display: none;
+        }
+        
+        .menu-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #f7931a;
+            border-radius: 20px;
+            padding: 30px 40px;
+            text-align: center;
+            min-width: 320px;
+        }
+        
+        .menu-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f7931a;
+            margin-bottom: 10px;
+        }
+        
+        .menu-btn {
+            display: block;
+            width: 100%;
+            background: #2c3e66;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .menu-btn:hover {
+            background: #f7931a;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="top-bar">
+        <div>🍳 CHEF STUDIO</div>
+        <div class="level-box">⭐ УРОВЕНЬ <span id="level">1</span></div>
+        <div class="xp-box">📊 ОПЫТ <span id="xp">0</span>/<span id="xpNeeded">100</span></div>
+        <div class="balance-box">💰 <span id="coins">500</span> AMD</div>
+    </div>
+    
+    <div class="game-main">
+        <!-- КУХНЯ -->
+        <div class="kitchen-workspace">
+            <div class="kitchen-header">
+                <div class="selected-dish" id="selectedDish">🔪 Выберите блюдо</div>
+                <div>🎨 Кулинарная песочница</div>
+            </div>
+            
+            <div class="cooking-area">
+                <div class="ingredients-area" id="ingredientsArea"></div>
+                
+                <div class="bowl-area" id="bowlArea" draggable="false">
+                    <div class="bowl-emoji">🥣</div>
+                    <div class="bowl-contents" id="bowlContents">Перетащите ингредиенты сюда</div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" id="mixBtn" disabled>🥄 СМЕШАТЬ</button>
+                    <button class="action-btn" id="heatBtn" disabled>🔥 ЗАПЕЧЬ</button>
+                    <button class="action-btn" id="cutBtn" disabled>🔪 НАРЕЗАТЬ</button>
+                    <button class="action-btn" id="blendBtn" disabled>🌀 ВЗБИТЬ</button>
+                    <button class="action-btn" id="serveBtn" disabled>🍽️ ПОДАТЬ</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- РЕЦЕПТЫ -->
+        <div class="recipes-panel">
+            <div class="recipes-title">📖 РЕЦЕПТЫ</div>
+            <div id="recipesList"></div>
+        </div>
+    </div>
+    
+    <!-- ИНВЕНТАРЬ -->
+    <div class="inventory-panel">
+        <div class="inventory-title">🎒 ИНГРЕДИЕНТЫ</div>
+        <div class="inventory-items" id="inventoryItems"></div>
+    </div>
+</div>
+
+<div id="menuOverlay" class="menu-overlay">
+    <div class="menu-panel">
+        <div class="menu-title">🍳 CHEF STUDIO</div>
+        <div style="color:#888; margin-bottom:20px;">Кулинарная мастерская</div>
+        <button class="menu-btn" id="startGameBtn">▶️ НАЧАТЬ ИГРУ</button>
+        <button class="menu-btn" id="resetGameBtn">🔄 НОВАЯ ИГРА</button>
+        <button class="menu-btn" id="exitToBeamBtn">🚪 ВЫЙТИ В BEAM</button>
+    </div>
+</div>
+
+<div id="cookingProgress" class="cooking-progress hidden">
+    <div class="cooking-progress-inner">
+        <div style="font-size: 50px;" id="progressEmoji">🍳</div>
+        <div class="step-description" id="stepDesc">Готовим...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div id="progressDetail" style="color:#888;">0%</div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
+    const GAME_ID = "chef_studio";
+    
+    let currentUser = null;
+    let gameStarted = false;
+    let level = 1;
+    let xp = 0;
+    let xpNeeded = 100;
+    let coins = 500;
+    
+    let inventory = {
+        meat: 3, cheese: 3, bread: 3, tomato: 3, lettuce: 3,
+        onion: 2, potato: 2, dough: 2, sauce: 2, milk: 2,
+        ice: 2, lemon: 2, soda: 2, chocolate: 2, egg: 3,
+        rice: 2, beans: 2, fish: 2, mushroom: 2, pepper: 2
+    };
+    
+    let currentBowl = []; // ингредиенты в миске
+    let selectedRecipe = null;
+    let currentSteps = [];
+    let currentStepIndex = 0;
+    
+    // ВСЕ РЕЦЕПТЫ С ПОШАГОВЫМИ ИНСТРУКЦИЯМИ
+    const recipes = {
+        shawarma: {
+            name: "Шаурма", emoji: "🌯", price: 45, xp: 15,
+            ingredients: { meat: 1, bread: 1, tomato: 1, lettuce: 1, sauce: 1 },
+            steps: [
+                { action: "cut", desc: "Нарежьте мясо тонкими полосками", emoji: "🔪", time: 2, ingredient: "meat" },
+                { action: "cut", desc: "Нарежьте помидоры и салат", emoji: "🔪", time: 1, ingredient: "tomato" },
+                { action: "mix", desc: "Смешайте все ингредиенты в миске", emoji: "🥄", time: 2 },
+                { action: "heat", desc: "Обжарьте на сковороде", emoji: "🔥", time: 3 },
+                { action: "serve", desc: "Заверните в лаваш и подавайте", emoji: "🍽️", time: 1 }
+            ]
+        },
+        burger: {
+            name: "Бургер", emoji: "🍔", price: 40, xp: 12,
+            ingredients: { meat: 1, cheese: 1, bread: 2, lettuce: 1, tomato: 1 },
+            steps: [
+                { action: "cut", desc: "Сформируйте котлету из мяса", emoji: "🔪", time: 2, ingredient: "meat" },
+                { action: "heat", desc: "Обжарьте котлету", emoji: "🔥", time: 3 },
+                { action: "cut", desc: "Нарежьте булочку", emoji: "🔪", time: 1, ingredient: "bread" },
+                { action: "mix", desc: "Соберите бургер", emoji: "🥄", time: 1 },
+                { action: "serve", desc: "Подавайте с соусом", emoji: "🍽️", time: 1 }
+            ]
+        },
+        pizza: {
+            name: "Пицца Маргарита", emoji: "🍕", price: 80, xp: 25,
+            ingredients: { dough: 2, cheese: 2, tomato: 2, sauce: 1 },
+            steps: [
+                { action: "mix", desc: "Замесите тесто", emoji: "🥄", time: 3 },
+                { action: "cut", desc: "Нарежьте помидоры и сыр", emoji: "🔪", time: 2, ingredient: "tomato" },
+                { action: "mix", desc: "Раскатайте тесто и добавьте начинку", emoji: "🥄", time: 2 },
+                { action: "heat", desc: "Выпекайте в духовке", emoji: "🔥", time: 5 },
+                { action: "serve", desc: "Нарежьте и подавайте", emoji: "🍽️", time: 1 }
+            ]
+        },
+        milkshake: {
+            name: "Милк-шейк", emoji: "🥤", price: 35, xp: 10,
+            ingredients: { milk: 2, ice: 1, chocolate: 1 },
+            steps: [
+                { action: "blend", desc: "Смешайте молоко и шоколад", emoji: "🌀", time: 2 },
+                { action: "blend", desc: "Добавьте лёд и взбейте", emoji: "🌀", time: 2 },
+                { action: "serve", desc: "Перелейте в стакан", emoji: "🍽️", time: 1 }
+            ]
+        },
+        sushi: {
+            name: "Суши Роллы", emoji: "🍣", price: 60, xp: 20,
+            ingredients: { rice: 2, fish: 2, sauce: 1 },
+            steps: [
+                { action: "mix", desc: "Приготовьте рис для суши", emoji: "🥄", time: 3 },
+                { action: "cut", desc: "Нарежьте рыбу", emoji: "🔪", time: 2, ingredient: "fish" },
+                { action: "mix", desc: "Сформируйте роллы", emoji: "🥄", time: 2 },
+                { action: "serve", desc: "Нарежьте и подавайте с соусом", emoji: "🍽️", time: 1 }
+            ]
+        },
+        pasta: {
+            name: "Паста Карбонара", emoji: "🍝", price: 55, xp: 18,
+            ingredients: { dough: 2, meat: 1, cheese: 1, egg: 1 },
+            steps: [
+                { action: "mix", desc: "Замесите тесто для пасты", emoji: "🥄", time: 3 },
+                { action: "cut", desc: "Нарежьте бекон", emoji: "🔪", time: 1, ingredient: "meat" },
+                { action: "heat", desc: "Сварите пасту", emoji: "🔥", time: 4 },
+                { action: "mix", desc: "Смешайте с соусом", emoji: "🥄", time: 1 },
+                { action: "serve", desc: "Посыпьте сыром и подавайте", emoji: "🍽️", time: 1 }
+            ]
+        },
+        salad: {
+            name: "Греческий салат", emoji: "🥗", price: 30, xp: 8,
+            ingredients: { lettuce: 2, tomato: 1, cheese: 1, onion: 1 },
+            steps: [
+                { action: "cut", desc: "Нарежьте овощи", emoji: "🔪", time: 2 },
+                { action: "mix", desc: "Смешайте в миске", emoji: "🥄", time: 1 },
+                { action: "serve", desc: "Добавьте сыр и подавайте", emoji: "🍽️", time: 1 }
+            ]
+        },
+        pancakes: {
+            name: "Блинчики", emoji: "🥞", price: 35, xp: 10,
+            ingredients: { milk: 2, egg: 2, dough: 1, chocolate: 1 },
+            steps: [
+                { action: "mix", desc: "Замесите тесто", emoji: "🥄", time: 2 },
+                { action: "heat", desc: "Выпекайте блины", emoji: "🔥", time: 4 },
+                { action: "serve", desc: "Добавьте шоколад и подавайте", emoji: "🍽️", time: 1 }
+            ]
+        },
+        omelette: {
+            name: "Омлет", emoji: "🍳", price: 25, xp: 7,
+            ingredients: { egg: 3, cheese: 1, milk: 1 },
+            steps: [
+                { action: "mix", desc: "Взбейте яйца с молоком", emoji: "🥄", time: 2 },
+                { action: "heat", desc: "Обжарьте на сковороде", emoji: "🔥", time: 3 },
+                { action: "serve", desc: "Посыпьте сыром", emoji: "🍽️", time: 1 }
+            ]
+        },
+        tacos: {
+            name: "Тако", emoji: "🌮", price: 45, xp: 14,
+            ingredients: { meat: 2, bread: 2, tomato: 1, cheese: 1 },
+            steps: [
+                { action: "heat", desc: "Обжарьте мясо", emoji: "🔥", time: 3 },
+                { action: "cut", desc: "Нарежьте овощи", emoji: "🔪", time: 1 },
+                { action: "mix", desc: "Соберите тако", emoji: "🥄", time: 1 },
+                { action: "serve", desc: "Подавайте с соусом", emoji: "🍽️", time: 1 }
+            ]
+        }
+    };
+    
+    function getCurrentUser() {
+        try { if(window.parent && window.parent.currentUser) return window.parent.currentUser; } catch(e){}
+        return localStorage.getItem('beam_user') || "guest";
+    }
+    currentUser = getCurrentUser();
+    
+    function showToast(msg, isError=false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.style.background = isError ? '#aa3333' : '#f7931a';
+        toast.style.opacity = '1';
+        setTimeout(() => toast.style.opacity = '0', 2000);
+    }
+    
+    function updateUI() {
+        document.getElementById('level').innerHTML = level;
+        document.getElementById('xp').innerHTML = xp;
+        document.getElementById('xpNeeded').innerHTML = xpNeeded;
+        document.getElementById('coins').innerHTML = Math.floor(coins);
+        renderInventory();
+        renderRecipes();
+        updateBowlDisplay();
+        updateActionButtons();
+    }
+    
+    function renderInventory() {
+        const container = document.getElementById('inventoryItems');
+        container.innerHTML = '';
+        const items = [
+            { id: 'meat', emoji: '🥩', name: 'Мясо' },
+            { id: 'cheese', emoji: '🧀', name: 'Сыр' },
+            { id: 'bread', emoji: '🍞', name: 'Хлеб' },
+            { id: 'tomato', emoji: '🍅', name: 'Томат' },
+            { id: 'lettuce', emoji: '🥬', name: 'Салат' },
+            { id: 'onion', emoji: '🧅', name: 'Лук' },
+            { id: 'potato', emoji: '🥔', name: 'Картофель' },
+            { id: 'dough', emoji: '🥟', name: 'Тесто' },
+            { id: 'sauce', emoji: '🥫', name: 'Соус' },
+            { id: 'milk', emoji: '🥛', name: 'Молоко' },
+            { id: 'ice', emoji: '🧊', name: 'Лёд' },
+            { id: 'lemon', emoji: '🍋', name: 'Лимон' },
+            { id: 'soda', emoji: '🥤', name: 'Газировка' },
+            { id: 'chocolate', emoji: '🍫', name: 'Шоколад' },
+            { id: 'egg', emoji: '🥚', name: 'Яйцо' },
+            { id: 'rice', emoji: '🍚', name: 'Рис' },
+            { id: 'beans', emoji: '🫘', name: 'Бобы' },
+            { id: 'fish', emoji: '🐟', name: 'Рыба' },
+            { id: 'mushroom', emoji: '🍄', name: 'Грибы' },
+            { id: 'pepper', emoji: '🫑', name: 'Перец' }
+        ];
+        for(let item of items) {
+            const count = inventory[item.id] || 0;
+            container.innerHTML += `<div class="inventory-item" draggable="true" data-ingredient="${item.id}" data-emoji="${item.emoji}" ondragstart="dragStart(event)" ondragend="dragEnd(event)"><span>${item.emoji}</span><span>${item.name}</span><span class="inventory-count">${count}</span></div>`;
+        }
+    }
+    
+    function dragStart(e) {
+        const el = e.target.closest('.inventory-item');
+        if(!el) return;
+        e.dataTransfer.setData('text/plain', el.dataset.ingredient);
+        e.dataTransfer.effectAllowed = 'copy';
+        el.classList.add('dragging');
+    }
+    
+    function dragEnd(e) {
+        document.querySelectorAll('.inventory-item').forEach(el => el.classList.remove('dragging'));
+    }
+    
+    function allowDrop(e) {
+        e.preventDefault();
+    }
+    
+    function dropIngredient(e) {
+        e.preventDefault();
+        const ingredientId = e.dataTransfer.getData('text/plain');
+        if(!ingredientId) return;
+        if(inventory[ingredientId] > 0) {
+            inventory[ingredientId]--;
+            currentBowl.push(ingredientId);
+            updateUI();
+            showToast(`➕ Добавлено: ${ingredientId}`, false);
+            document.getElementById('bowlArea').classList.remove('drag-over');
+        } else {
+            showToast(`❌ Нет ${ingredientId} в инвентаре!`, true);
+        }
+    }
+    
+    function updateBowlDisplay() {
+        const container = document.getElementById('bowlContents');
+        if(currentBowl.length === 0) {
+            container.innerHTML = 'Перетащите ингредиенты сюда';
+        } else {
+            const counts = {};
+            currentBowl.forEach(ing => counts[ing] = (counts[ing] || 0) + 1);
+            let text = '';
+            for(let [ing, count] of Object.entries(counts)) {
+                let emoji = '';
+                if(ing === 'meat') emoji = '🥩';
+                else if(ing === 'cheese') emoji = '🧀';
+                else if(ing === 'tomato') emoji = '🍅';
+                else if(ing === 'lettuce') emoji = '🥬';
+                else if(ing === 'bread') emoji = '🍞';
+                else if(ing === 'onion') emoji = '🧅';
+                else if(ing === 'egg') emoji = '🥚';
+                else emoji = '🔹';
+                text += `${emoji} ${ing} x${count} `;
+            }
+            container.innerHTML = text;
+        }
+    }
+    
+    function renderRecipes() {
+        const container = document.getElementById('recipesList');
+        container.innerHTML = '';
+        for(let [id, recipe] of Object.entries(recipes)) {
+            const isSelected = selectedRecipe === id;
+            container.innerHTML += `
+                <div class="recipe-card ${isSelected ? 'selected' : ''}" onclick="selectRecipe('${id}')">
+                    <div class="recipe-header">
+                        <span class="recipe-emoji">${recipe.emoji}</span>
+                        <span class="recipe-name">${recipe.name}</span>
+                        <span class="recipe-price">💰 ${recipe.price}</span>
+                    </div>
+                    <div class="recipe-ingredients">${Object.entries(recipe.ingredients).map(([ing,amt]) => `${ing}:${amt}`).join(', ')}</div>
+                    <div class="recipe-difficulty">⭐ Опыт: ${recipe.xp}</div>
+                </div>
+            `;
+        }
+    }
+    
+    function selectRecipe(id) {
+        selectedRecipe = id;
+        renderRecipes();
+        const recipe = recipes[id];
+        document.getElementById('selectedDish').innerHTML = `${recipe.emoji} ${recipe.name} выбран`;
+        showToast(`📖 Выбран рецепт: ${recipe.name}. Соберите ингредиенты в миску!`);
+    }
+    
+    function updateActionButtons() {
+        const hasBowl = currentBowl.length > 0;
+        document.getElementById('mixBtn').disabled = !hasBowl;
+        document.getElementById('heatBtn').disabled = !hasBowl;
+        document.getElementById('cutBtn').disabled = !hasBowl;
+        document.getElementById('blendBtn').disabled = !hasBowl;
+        document.getElementById('serveBtn').disabled = !hasBowl;
+    }
+    
+    function startCookingProcess(recipeId) {
+        const recipe = recipes[recipeId];
+        if(!recipe) return;
+        
+        // Проверяем ингредиенты
+        for(let [ing, needed] of Object.entries(recipe.ingredients)) {
+            const has = currentBowl.filter(i => i === ing).length;
+            if(has < needed) {
+                showToast(`❌ Не хватает ${ing}! Нужно ${needed}, есть ${has}`, true);
+                return;
+            }
+        }
+        
+        currentSteps = [...recipe.steps];
+        currentStepIndex = 0;
+        startNextStep();
+    }
+    
+    function startNextStep() {
+        if(currentStepIndex >= currentSteps.length) {
+            finishCooking();
+            return;
+        }
+        
+        const step = currentSteps[currentStepIndex];
+        const progressDiv = document.getElementById('cookingProgress');
+        const progressFill = document.getElementById('progressFill');
+        const stepDesc = document.getElementById('stepDesc');
+        const progressEmoji = document.getElementById('progressEmoji');
+        const progressDetail = document.getElementById('progressDetail');
+        
+        progressEmoji.innerHTML = step.emoji;
+        stepDesc.innerHTML = step.desc;
+        progressFill.style.width = '0%';
+        progressDetail.innerHTML = '0%';
+        progressDiv.classList.remove('hidden');
+        
+        let progress = 0;
+        const duration = step.time * 1000;
+        const interval = 50;
+        const stepInterval = setInterval(() => {
+            progress += (interval / duration) * 100;
+            if(progress >= 100) {
+                clearInterval(stepInterval);
+                progressFill.style.width = '100%';
+                progressDetail.innerHTML = '100%';
+                setTimeout(() => {
+                    progressDiv.classList.add('hidden');
+                    currentStepIndex++;
+                    
+                    // Если был указан ингредиент для обработки, удаляем его из миски
+                    if(step.ingredient) {
+                        const index = currentBowl.findIndex(i => i === step.ingredient);
+                        if(index !== -1) currentBowl.splice(index, 1);
+                    }
+                    
+                    startNextStep();
+                }, 300);
+            } else {
+                progressFill.style.width = progress + '%';
+                progressDetail.innerHTML = Math.floor(progress) + '%';
+            }
+        }, interval);
+    }
+    
+    function finishCooking() {
+        const recipe = recipes[selectedRecipe];
+        if(!recipe) return;
+        
+        // Удаляем использованные ингредиенты из миски
+        for(let [ing, needed] of Object.entries(recipe.ingredients)) {
+            for(let i = 0; i < needed; i++) {
+                const idx = currentBowl.findIndex(b => b === ing);
+                if(idx !== -1) currentBowl.splice(idx, 1);
+            }
+        }
+        
+        const earned = recipe.price + Math.floor(level * 2);
+        coins += earned;
+        addXp(recipe.xp);
+        
+        showToast(`✅ ${recipe.emoji} ${recipe.name} готов! +${earned}💰 +${recipe.xp}⭐`);
+        updateUI();
+        
+        selectedRecipe = null;
+        document.getElementById('selectedDish').innerHTML = '🔪 Выберите блюдо';
+        renderRecipes();
+    }
+    
+    function addXp(amount) {
+        xp += amount;
+        while(xp >= xpNeeded) {
+            xp -= xpNeeded;
+            level++;
+            xpNeeded = Math.floor(100 + level * 25);
+            coins += 200;
+            showToast(`🎉 УРОВЕНЬ ${level} ДОСТИГНУТ! +200💰`);
+        }
+        updateUI();
+    }
+    
+    function mixAction() {
+        if(!selectedRecipe) { showToast("❌ Сначала выберите рецепт!", true); return; }
+        startCookingProcess(selectedRecipe);
+    }
+    
+    function heatAction() {
+        if(!selectedRecipe) { showToast("❌ Сначала выберите рецепт!", true); return; }
+        // Для простоты используем тот же процесс, но в реальности можно добавить разные действия
+        startCookingProcess(selectedRecipe);
+    }
+    
+    function cutAction() {
+        if(!selectedRecipe) { showToast("❌ Сначала выберите рецепт!", true); return; }
+        startCookingProcess(selectedRecipe);
+    }
+    
+    function blendAction() {
+        if(!selectedRecipe) { showToast("❌ Сначала выберите рецепт!", true); return; }
+        startCookingProcess(selectedRecipe);
+    }
+    
+    function serveAction() {
+        if(!selectedRecipe) { showToast("❌ Сначала выберите рецепт!", true); return; }
+        startCookingProcess(selectedRecipe);
+    }
+    
+    function startGame() {
+        document.getElementById('menuOverlay').classList.add('hidden');
+        gameStarted = true;
+        showToast("🍳 Добро пожаловать в CHEF STUDIO! Перетаскивайте ингредиенты в миску и выбирайте рецепт!");
+    }
+    
+    function resetGame() {
+        level = 1;
+        xp = 0;
+        xpNeeded = 100;
+        coins = 500;
+        inventory = {
+            meat: 3, cheese: 3, bread: 3, tomato: 3, lettuce: 3,
+            onion: 2, potato: 2, dough: 2, sauce: 2, milk: 2,
+            ice: 2, lemon: 2, soda: 2, chocolate: 2, egg: 3,
+            rice: 2, beans: 2, fish: 2, mushroom: 2, pepper: 2
+        };
+        currentBowl = [];
+        selectedRecipe = null;
+        updateUI();
+        document.getElementById('selectedDish').innerHTML = '🔪 Выберите блюдо';
+        showToast("🔄 Игра сброшена!");
+    }
+    
+    function exitToBeam() {
+        window.location.href = "../index.html";
+    }
+    
+    // Настройка Drop зоны
+    const bowlArea = document.getElementById('bowlArea');
+    bowlArea.addEventListener('dragover', allowDrop);
+    bowlArea.addEventListener('drop', dropIngredient);
+    bowlArea.addEventListener('dragenter', (e) => { e.preventDefault(); bowlArea.classList.add('drag-over'); });
+    bowlArea.addEventListener('dragleave', () => { bowlArea.classList.remove('drag-over'); });
+    
+    document.getElementById('mixBtn').onclick = mixAction;
+    document.getElementById('heatBtn').onclick = heatAction;
+    document.getElementById('cutBtn').onclick = cutAction;
+    document.getElementById('blendBtn').onclick = blendAction;
+    document.getElementById('serveBtn').onclick = serveAction;
+    
+    document.getElementById('startGameBtn').onclick = startGame;
+    document.getElementById('resetGameBtn').onclick = resetGame;
+    document.getElementById('exitToBeamBtn').onclick = exitToBeam;
+    
+    window.dragStart = dragStart;
+    window.dragEnd = dragEnd;
+    window.selectRecipe = selectRecipe;
+    
+    updateUI();
+</script>
+</body>
+</html>
