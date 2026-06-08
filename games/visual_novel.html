@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ECHOES OF THE VOID - Визуальная новелла</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 100%); display: flex; justify-content: center; align-items: center; font-family: 'Courier New', monospace; padding: 20px; }
+        .game-container { position: relative; width: 1100px; max-width: 100%; background: #1a1a2a; border-radius: 20px; overflow: hidden; box-shadow: 0 0 40px rgba(247,147,26,0.3); border: 1px solid #f7931a; }
+        canvas { width: 100%; height: auto; display: block; background: #0a0a1a; }
+        .vn-ui { padding: 20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); border-top: 1px solid #f7931a; }
+        .vn-textbox { background: rgba(0,0,0,0.7); border-radius: 15px; padding: 20px; margin-bottom: 15px; min-height: 120px; }
+        .speaker { color: #f7931a; font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; }
+        .message { color: #ddd; font-size: 1rem; line-height: 1.5; }
+        .choices { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
+        .choice-btn { background: #2c3e66; border: none; color: white; padding: 12px 24px; border-radius: 40px; font-size: 0.9rem; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .choice-btn:hover { background: #f7931a; transform: scale(1.02); }
+        .vn-controls { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
+        .ctrl-btn { background: #1a1a2e; border: 1px solid #f7931a; color: white; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 0.8rem; }
+        .ctrl-btn:hover { background: #f7931a; color: black; }
+        .save-load-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: flex; justify-content: center; align-items: center; visibility: hidden; opacity: 0; transition: 0.2s; }
+        .save-load-panel.active { visibility: visible; opacity: 1; }
+        .save-load-container { background: #1a1a2e; border-radius: 20px; padding: 30px; width: 400px; border: 2px solid #f7931a; }
+        .save-slot { background: #2c3e66; margin: 10px 0; padding: 12px; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; }
+        .save-slot:hover { background: #f7931a; }
+        .menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .menu-overlay.hidden { display: none; }
+        .menu-panel { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid #f7931a; border-radius: 20px; padding: 30px 40px; text-align: center; min-width: 320px; }
+        .menu-title { font-size: 28px; font-weight: bold; color: #f7931a; margin-bottom: 10px; }
+        .menu-btn { display: block; width: 100%; background: #2c3e66; border: none; color: white; padding: 12px 20px; margin: 10px 0; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .menu-btn:hover { background: #f7931a; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #f7931a; color: black; padding: 10px 20px; border-radius: 30px; z-index: 200; opacity: 0; transition: 0.3s; }
+        .endings-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 150; display: flex; justify-content: center; align-items: center; }
+        .endings-panel.hidden { display: none; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <canvas id="vnCanvas" width="1100" height="500"></canvas>
+    <div class="vn-ui">
+        <div class="vn-textbox">
+            <div class="speaker" id="speaker">Система</div>
+            <div class="message" id="message">Загрузка...</div>
+            <div class="choices" id="choices"></div>
+        </div>
+        <div class="vn-controls">
+            <button class="ctrl-btn" id="saveBtn">💾 СОХРАНИТЬ</button>
+            <button class="ctrl-btn" id="loadBtn">📀 ЗАГРУЗИТЬ</button>
+            <button class="ctrl-btn" id="autoBtn">▶ АВТО</button>
+            <button class="ctrl-btn" id="skipBtn">⏩ ПРОПУСК</button>
+            <button class="ctrl-btn" id="menuBtn">📋 МЕНЮ</button>
+        </div>
+    </div>
+</div>
+
+<div id="menuOverlay" class="menu-overlay">
+    <div class="menu-panel">
+        <div class="menu-title">📖 ECHOES OF THE VOID</div>
+        <div style="color:#888; margin-bottom:20px;">Отголоски Пустоты</div>
+        <button class="menu-btn" id="startNewBtn">▶️ НАЧАТЬ НОВУЮ ИГРУ</button>
+        <button class="menu-btn" id="continueBtn">📀 ПРОДОЛЖИТЬ</button>
+        <button class="menu-btn" id="endingsBtn">🏆 КОНЦОВКИ</button>
+        <button class="menu-btn" id="exitToBeamBtn">🚪 ВЫЙТИ В BEAM</button>
+    </div>
+</div>
+
+<div id="saveLoadPanel" class="save-load-panel">
+    <div class="save-load-container">
+        <h3 style="color:#f7931a; text-align:center;" id="saveLoadTitle">СОХРАНЕНИЯ</h3>
+        <div id="saveSlots"></div>
+        <button class="ctrl-btn" id="closeSaveLoadBtn" style="margin-top:15px; width:100%;">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="endingsPanel" class="endings-panel hidden">
+    <div class="menu-panel">
+        <div class="menu-title">🏆 ПОЛУЧЕННЫЕ КОНЦОВКИ</div>
+        <div id="endingsList" style="color:white; margin:20px 0; text-align:left;"></div>
+        <button class="menu-btn" id="closeEndingsBtn">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
+    const GAME_ID = "visual_novel_echoes";
+    
+    let currentUser = null;
+    let currentScene = "start";
+    let autoMode = false;
+    let autoTimer = null;
+    let skipMode = false;
+    let gameStarted = false;
+    let history = [];
+    let endingsUnlocked = [];
+    
+    // СЦЕНЫ
+    const scenes = {
+        start: { bg: "void", speaker: "???", text: "Ты просыпаешься в полной темноте. Голова раскалывается...", choices: [{ text: "Оглядеться", next: "look_around" }, { text: "Позвать на помощь", next: "call_help" }] },
+        look_around: { bg: "ruins", speaker: "Ты", text: "Вокруг — руины древнего здания. Странные символы мерцают на стенах.", choices: [{ text: "Подойти к символам", next: "symbols" }, { text: "Искать выход", next: "search_exit" }] },
+        call_help: { bg: "ruins", speaker: "Ты", text: "— Эй! Кто-нибудь есть?! Тишина.", choices: [{ text: "Подойти к символам", next: "symbols" }, { text: "Искать выход", next: "search_exit" }] },
+        symbols: { bg: "symbols", speaker: "Голос", text: "Символы светятся. Шёпот: 'Освободи меня... Найди три ключа...'", choices: [{ text: "Кто ты?", next: "who_are_you" }, { text: "Где искать ключи?", next: "where_keys" }] },
+        who_are_you: { bg: "void", speaker: "Голос", text: "Я — запертая здесь душа. Помоги мне выйти.", choices: [{ text: "Где искать ключи?", next: "where_keys" }, { text: "Почему я здесь?", next: "why_here" }] },
+        where_keys: { bg: "ruins", speaker: "Голос", text: "Первый ключ в Зале Памяти. Второй — в Библиотеке. Третий — в Лабиринте.", choices: [{ text: "Идти в Зал Памяти", next: "memory_hall" }, { text: "Идти в Библиотеку", next: "library" }] },
+        why_here: { bg: "void", speaker: "Голос", text: "Ты был избран. Твоя душа чиста...", choices: [{ text: "Идти в Зал Памяти", next: "memory_hall" }] },
+        search_exit: { bg: "ruins", speaker: "Ты", text: "Находишь старую дверь. Нужны ключи.", choices: [{ text: "Искать ключи", next: "where_keys" }] },
+        
+        memory_hall: { bg: "memory_hall", speaker: "Зал Памяти", text: "Стены покрыты портретами. Все изображают тебя.", choices: [{ text: "Осмотреть портреты", next: "portraits" }, { text: "Идти дальше", next: "memory_test" }] },
+        portraits: { bg: "portraits", speaker: "Ты", text: "На портрете ты держишь ключ. Ты берёшь его.", choices: [{ text: "Взять ключ", next: "key_1_got" }] },
+        memory_test: { bg: "memory_hall", speaker: "Голос", text: "Вспомни своё первое воспоминание.", choices: [{ text: "Смех матери", next: "memory_test_fail" }, { text: "Тьма и свет", next: "memory_test_correct" }, { text: "Первый крик", next: "memory_test_fail" }] },
+        memory_test_correct: { bg: "memory_hall", speaker: "Голос", text: "Правильно! Ты получаешь первый ключ.", choices: [{ text: "Взять ключ", next: "key_1_got" }] },
+        memory_test_fail: { bg: "memory_hall", speaker: "Голос", text: "Неправильно... Но ты всё же находишь ключ.", choices: [{ text: "Взять ключ", next: "key_1_got" }] },
+        key_1_got: { bg: "memory_hall", speaker: "Система", text: "Первый ключ получен! (1/3)", choices: [{ text: "Идти в Библиотеку", next: "library" }] },
+        
+        library: { bg: "library", speaker: "Библиотека", text: "Бесконечная библиотека. Книги шепчут.", choices: [{ text: "Читать книгу о себе", next: "read_book" }, { text: "Искать ключ", next: "search_library" }] },
+        read_book: { bg: "library", speaker: "Книга", text: "Книга открывается. Некоторые страницы вырваны.", choices: [{ text: "Что написано?", next: "book_page" }, { text: "Закрыть книгу", next: "search_library" }] },
+        book_page: { bg: "library", speaker: "Книга", text: "Последняя страница: 'Ты — ключ. Ты — дверь.'", choices: [{ text: "Оглядеться", next: "search_library" }] },
+        search_library: { bg: "library", speaker: "Ты", text: "Находишь тайную комнату. В центре — алтарь с ключом.", choices: [{ text: "Взять ключ", next: "key_2_got" }] },
+        key_2_got: { bg: "library", speaker: "Система", text: "Второй ключ получен! (2/3)", choices: [{ text: "Идти в Лабиринт", next: "labyrinth" }] },
+        
+        labyrinth: { bg: "labyrinth", speaker: "Лабиринт", text: "Стены пульсируют. Ты слышишь шаги.", choices: [{ text: "Оглянуться", next: "labyrinth_look" }, { text: "Бежать вперёд", next: "labyrinth_run" }, { text: "Повернуть налево", next: "labyrinth_left" }] },
+        labyrinth_look: { bg: "labyrinth", speaker: "Тень", text: "Твоя тень указывает путь.", choices: [{ text: "Следовать за тенью", next: "key_3_got" }] },
+        labyrinth_run: { bg: "labyrinth", speaker: "Ты", text: "Бежишь. Впереди тупик, но в стене ниша с ключом.", choices: [{ text: "Взять ключ", next: "key_3_got" }] },
+        labyrinth_left: { bg: "labyrinth", speaker: "Голос", text: "Комната с зеркалами. В отражении ты держишь ключ.", choices: [{ text: "Войти в зеркало", next: "key_3_got" }] },
+        key_3_got: { bg: "labyrinth", speaker: "Система", text: "Третий ключ получен! (3/3)", choices: [{ text: "Вернуться к двери", next: "final_door" }] },
+        
+        final_door: { bg: "final_door", speaker: "Ты", text: "Дверь открывается.", choices: [{ text: "Войти", next: "ending_1" }, { text: "Отказаться", next: "ending_2" }, { text: "Забрать ключи себе", next: "ending_3" }, { text: "Предложить себя", next: "ending_4" }] },
+        
+        ending_1: { bg: "ending_light", speaker: "Голос", text: "Ты просыпаешься в своей комнате. Это был сон? Ты никогда не узнаешь.", ending: true, endingId: "ending_1", endingName: "🌅 ПРОСНУВШИЙСЯ" },
+        ending_2: { bg: "ending_dark", speaker: "Тень", text: "Ты отказываешься. Тьма поглощает тебя. Ты становишься новым хранителем.", ending: true, endingId: "ending_2", endingName: "🌑 НОВЫЙ ХРАНИТЕЛЬ" },
+        ending_3: { bg: "ending_void", speaker: "Пустота", text: "Ты забираешь ключи себе и обретаешь силу. Теперь ты — бог этого места.", ending: true, endingId: "ending_3", endingName: "✨ БОГ ПУСТОТЫ" },
+        ending_4: { bg: "ending_sacrifice", speaker: "Ты", text: "Ты остаёшься вместо души. Твоя жертва не зря.", ending: true, endingId: "ending_4", endingName: "🕯️ ЖЕРТВА" }
+    };
+    
+    const canvas = document.getElementById('vnCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1100;
+    canvas.height = 500;
+    
+    const backgrounds = {
+        void: (ctx,w,h) => { ctx.fillStyle="#0a0a1a"; ctx.fillRect(0,0,w,h); for(let i=0;i<50;i++){ ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.3})`; ctx.fillRect(Math.random()*w,Math.random()*h,2,2); } },
+        ruins: (ctx,w,h) => { ctx.fillStyle="#2a1a0a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#4a3a2a"; for(let i=0;i<10;i++){ ctx.fillRect(50+Math.random()*w-100,100+Math.random()*h-100,30,30); } },
+        symbols: (ctx,w,h) => { ctx.fillStyle="#0a0a2a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#f7931a"; for(let i=0;i<8;i++){ ctx.font="30px monospace"; ctx.fillText("☯",100+Math.random()*w-100,100+Math.random()*h-100); } },
+        memory_hall: (ctx,w,h) => { ctx.fillStyle="#1a1a3a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#f7931a"; ctx.font="20px monospace"; for(let i=0;i<5;i++){ ctx.fillText("🖼️",100+i*150,150); } },
+        portraits: (ctx,w,h) => { ctx.fillStyle="#2a2a4a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#ffd700"; ctx.font="40px monospace"; ctx.fillText("👤🔑",w/2-30,h/2); },
+        library: (ctx,w,h) => { ctx.fillStyle="#1a1a2a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#8B6914"; for(let i=0;i<20;i++){ ctx.fillRect(50+Math.random()*w-50,50+Math.random()*h-50,15,25); } },
+        labyrinth: (ctx,w,h) => { ctx.fillStyle="#0a1a0a"; ctx.fillRect(0,0,w,h); ctx.strokeStyle="#2a4a2a"; for(let i=0;i<20;i++){ ctx.beginPath(); ctx.moveTo(100+Math.random()*w-100,0); ctx.lineTo(100+Math.random()*w-100,h); ctx.stroke(); } },
+        final_door: (ctx,w,h) => { ctx.fillStyle="#1a0a0a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#f7931a"; ctx.fillRect(w/2-30,h/2-50,60,100); ctx.fillStyle="#ffd700"; ctx.font="30px monospace"; ctx.fillText("🚪",w/2-15,h/2+10); },
+        ending_light: (ctx,w,h) => { ctx.fillStyle="#ffffaa"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#ffd700"; ctx.font="50px monospace"; ctx.fillText("☀️",w/2-25,h/2); },
+        ending_dark: (ctx,w,h) => { ctx.fillStyle="#000000"; ctx.fillRect(0,0,w,h); },
+        ending_void: (ctx,w,h) => { ctx.fillStyle="#0a0a2a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#aa44ff"; ctx.font="40px monospace"; ctx.fillText("🌀",w/2-20,h/2); },
+        ending_sacrifice: (ctx,w,h) => { ctx.fillStyle="#2a1a2a"; ctx.fillRect(0,0,w,h); ctx.fillStyle="#ffaaaa"; ctx.font="40px monospace"; ctx.fillText("🕯️",w/2-20,h/2); }
+    };
+    
+    function drawBackground(bgName) {
+        const bg = backgrounds[bgName] || backgrounds.void;
+        bg(ctx, canvas.width, canvas.height);
+    }
+    
+    function getCurrentUser() {
+        try { if(window.parent && window.parent.currentUser) return window.parent.currentUser; } catch(e){}
+        return localStorage.getItem('beam_user') || "guest";
+    }
+    currentUser = getCurrentUser();
+    
+    function showToast(msg, isError=false) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.style.background = isError ? '#aa3333' : '#f7931a';
+        toast.style.opacity = '1';
+        setTimeout(() => toast.style.opacity = '0', 2000);
+    }
+    
+    function unlockEnding(endingId, endingName) {
+        if(!endingsUnlocked.includes(endingId)){
+            endingsUnlocked.push(endingId);
+            localStorage.setItem(`vn_endings_${currentUser}`, JSON.stringify(endingsUnlocked));
+            showToast(`🏆 ${endingName}`);
+        }
+    }
+    
+    function loadEndings() {
+        const saved = localStorage.getItem(`vn_endings_${currentUser}`);
+        if(saved) endingsUnlocked = JSON.parse(saved);
+        else endingsUnlocked = [];
+    }
+    
+    function renderScene(sceneId) {
+        const scene = scenes[sceneId];
+        if(!scene) return;
+        document.getElementById('speaker').innerHTML = scene.speaker;
+        document.getElementById('message').innerHTML = scene.text;
+        drawBackground(scene.bg);
+        const choicesDiv = document.getElementById('choices');
+        if(scene.ending) {
+            unlockEnding(scene.endingId, scene.endingName);
+            choicesDiv.innerHTML = `<button class="choice-btn" onclick="goToTitle()">🏠 В ГЛАВНОЕ МЕНЮ</button>`;
+        } else if(scene.choices) {
+            choicesDiv.innerHTML = '';
+            scene.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choice.text;
+                btn.onclick = () => {
+                    if(autoMode) stopAuto();
+                    currentScene = choice.next;
+                    renderScene(currentScene);
+                };
+                choicesDiv.appendChild(btn);
+            });
+        }
+    }
+    
+    function goToTitle() {
+        stopAuto();
+        gameStarted = false;
+        document.getElementById('menuOverlay').classList.remove('hidden');
+    }
+    
+    function startNewGame() {
+        currentScene = "start";
+        history = [];
+        gameStarted = true;
+        document.getElementById('menuOverlay').classList.add('hidden');
+        renderScene(currentScene);
+    }
+    
+    function continueGame() {
+        loadFromCloud();
+    }
+    
+    function stopAuto() {
+        autoMode = false;
+        if(autoTimer) clearInterval(autoTimer);
+        document.getElementById('autoBtn').style.background = "#1a1a2e";
+    }
+    
+    function startAuto() {
+        stopAuto();
+        autoMode = true;
+        document.getElementById('autoBtn').style.background = "#f7931a";
+        autoTimer = setInterval(() => {
+            const btns = document.querySelectorAll('.choice-btn');
+            if(btns.length === 1 && btns[0].textContent !== "🏠 В ГЛАВНОЕ МЕНЮ") btns[0].click();
+        }, 2500);
+    }
+    
+    function startSkip() {
+        if(skipMode) return;
+        skipMode = true;
+        document.getElementById('skipBtn').style.background = "#f7931a";
+        const interval = setInterval(() => {
+            if(!skipMode) { clearInterval(interval); return; }
+            const btns = document.querySelectorAll('.choice-btn');
+            if(btns.length === 1 && btns[0].textContent !== "🏠 В ГЛАВНОЕ МЕНЮ") btns[0].click();
+        }, 500);
+        setTimeout(() => { skipMode = false; document.getElementById('skipBtn').style.background = "#1a1a2e"; clearInterval(interval); }, 30000);
+    }
+    
+    function showSaveLoad(isSave) {
+        const panel = document.getElementById('saveLoadPanel');
+        document.getElementById('saveLoadTitle').innerHTML = isSave ? "💾 СОХРАНИТЬ" : "📀 ЗАГРУЗИТЬ";
+        const slots = document.getElementById('saveSlots');
+        slots.innerHTML = '';
+        for(let i=1;i<=5;i++){
+            const slot = document.createElement('div');
+            slot.className = 'save-slot';
+            slot.innerHTML = `<span>Слот ${i}</span><span>${localStorage.getItem(`vn_save_${i}_desc`) || 'Пусто'}</span>`;
+            slot.onclick = () => {
+                if(isSave) saveGame(i);
+                else loadGame(i);
+                panel.classList.remove('active');
+            };
+            slots.appendChild(slot);
+        }
+        panel.classList.add('active');
+    }
+    
+    function saveGame(slot) {
+        const data = { scene: currentScene, endings: endingsUnlocked, timestamp: new Date().toLocaleString() };
+        localStorage.setItem(`vn_save_${slot}`, JSON.stringify(data));
+        localStorage.setItem(`vn_save_${slot}_desc`, data.timestamp);
+        showToast(`✅ Сохранено в слот ${slot}`);
+    }
+    
+    function loadGame(slot) {
+        const data = localStorage.getItem(`vn_save_${slot}`);
+        if(data){
+            const save = JSON.parse(data);
+            currentScene = save.scene;
+            endingsUnlocked = save.endings || [];
+            gameStarted = true;
+            document.getElementById('menuOverlay').classList.add('hidden');
+            renderScene(currentScene);
+            showToast(`📀 Загружено из слота ${slot}`);
+        } else showToast(`❌ Слот ${slot} пуст`, true);
+    }
+    
+    async function saveToCloud() {
+        const saveData = { scene: currentScene, endings: endingsUnlocked };
+        try {
+            await fetch(`${SCRIPT_URL}?action=saveGameData&login=${currentUser}&gameId=${GAME_ID}&saveJson=${JSON.stringify(saveData)}`);
+            showToast("✅ Сохранено в облаке!");
+        } catch(e) { showToast("❌ Ошибка", true); }
+    }
+    
+    async function loadFromCloud() {
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=loadGameData&login=${currentUser}&gameId=${GAME_ID}`);
+            const data = await res.json();
+            if(data.success && data.saveData && data.saveData !== "{}"){
+                const save = JSON.parse(data.saveData);
+                currentScene = save.scene || "start";
+                endingsUnlocked = save.endings || [];
+                gameStarted = true;
+                document.getElementById('menuOverlay').classList.add('hidden');
+                renderScene(currentScene);
+                showToast("📀 Загружено из облака!");
+            } else startNewGame();
+        } catch(e) { startNewGame(); }
+    }
+    
+    function showEndings() {
+        const panel = document.getElementById('endingsPanel');
+        const list = document.getElementById('endingsList');
+        list.innerHTML = '';
+        const all = {
+            ending_1: "🌅 ПРОСНУВШИЙСЯ",
+            ending_2: "🌑 НОВЫЙ ХРАНИТЕЛЬ",
+            ending_3: "✨ БОГ ПУСТОТЫ",
+            ending_4: "🕯️ ЖЕРТВА"
+        };
+        for(let [id,name] of Object.entries(all)){
+            const unlocked = endingsUnlocked.includes(id);
+            list.innerHTML += `<div style="margin:10px; padding:10px; background:${unlocked ? '#2c3e66' : '#1a1a2e'}; border-radius:10px;">${unlocked ? '✅' : '❌'} ${name}</div>`;
+        }
+        panel.classList.remove('hidden');
+    }
+    
+    function exitToBeam() {
+        saveToCloud();
+        window.location.href = "../index.html";
+    }
+    
+    document.getElementById('startNewBtn').onclick = startNewGame;
+    document.getElementById('continueBtn').onclick = continueGame;
+    document.getElementById('endingsBtn').onclick = showEndings;
+    document.getElementById('exitToBeamBtn').onclick = exitToBeam;
+    document.getElementById('saveBtn').onclick = () => gameStarted ? showSaveLoad(true) : showToast("Сначала начните игру!", true);
+    document.getElementById('loadBtn').onclick = () => showSaveLoad(false);
+    document.getElementById('autoBtn').onclick = startAuto;
+    document.getElementById('skipBtn').onclick = startSkip;
+    document.getElementById('menuBtn').onclick = goToTitle;
+    document.getElementById('closeSaveLoadBtn').onclick = () => document.getElementById('saveLoadPanel').classList.remove('active');
+    document.getElementById('closeEndingsBtn').onclick = () => document.getElementById('endingsPanel').classList.add('hidden');
+    
+    loadEndings();
+    drawBackground("void");
+</script>
+</body>
+</html>
