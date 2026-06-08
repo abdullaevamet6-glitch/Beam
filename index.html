@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>BEAM — Магазин игр на AMDs</title>
+    <title>BEAM — Социальный магазин игр</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -96,7 +96,6 @@
         .game-title { font-weight: bold; font-size: 1rem; margin-bottom: 8px; }
         .game-price { font-size: 0.9rem; color: #f7931a; margin-bottom: 12px; }
         .action-btn { background: #f7931a; border: none; padding: 10px; border-radius: 60px; font-weight: bold; cursor: pointer; width: 100%; }
-        .buy-btn { background: #2c7a4d; }
         .admin-panel { background: #0a0a12; border-radius: 32px; padding: 20px; margin-top: 20px; }
         .account-stats { background: #0f0f18; border-radius: 32px; padding: 28px; text-align: center; }
         .modal-overlay {
@@ -117,6 +116,12 @@
             background: #f7931a; color: black; padding: 12px 28px; border-radius: 60px;
             font-weight: bold; z-index: 3000; opacity: 0; transition: 0.3s; pointer-events: none;
         }
+        .friends-list { max-height: 300px; overflow-y: auto; margin: 10px 0; }
+        .friend-item { background: #1e1e2e; border-radius: 60px; padding: 8px 16px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .chat-box { height: 300px; overflow-y: auto; background: #0f0f18; border-radius: 32px; padding: 16px; margin-top: 16px; }
+        .chat-message { margin: 8px 0; padding: 8px; border-radius: 20px; background: #1e1e2e; }
+        .chat-message.own { background: #f7931a; color: black; text-align: right; }
+        .friend-request { background: #2a2a3a; padding: 12px; border-radius: 32px; margin: 8px 0; }
     </style>
 </head>
 <body>
@@ -152,14 +157,42 @@
             <div class="balance-box">💰 <span id="globalBalance">0</span> AMD</div>
         </div>
         <div class="nav-tabs">
-            <button class="nav-btn active" data-tab="shop">🛒 МАГАЗИН</button>
+            <button class="nav-btn" data-tab="shop">🛒 МАГАЗИН</button>
             <button class="nav-btn" data-tab="library">📚 БИБЛИОТЕКА</button>
+            <button class="nav-btn" data-tab="social">👥 СООБЩЕСТВО</button>
             <button class="nav-btn" data-tab="account">👤 АККАУНТ</button>
             <button class="nav-btn" id="adminTabBtn" style="display:none;" data-tab="admin">🔧 АДМИН</button>
         </div>
 
         <div id="shopTab" class="tab-content"><div class="games-catalog" id="shopCatalog"></div></div>
         <div id="libraryTab" class="tab-content" style="display:none;"><div class="library-catalog" id="libraryCatalog"></div></div>
+        
+        <div id="socialTab" class="tab-content" style="display:none;">
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; background: #0f0f18; border-radius: 32px; padding: 20px;">
+                    <h3>👥 ДРУЗЬЯ</h3>
+                    <input type="text" id="addFriendInput" placeholder="Логин друга" style="width: 70%; padding: 8px; border-radius: 60px;">
+                    <button id="addFriendBtn" class="action-btn" style="width: 25%;">➕ ДОБАВИТЬ</button>
+                    <div id="friendsList" class="friends-list"></div>
+                </div>
+                <div style="flex: 2; background: #0f0f18; border-radius: 32px; padding: 20px;">
+                    <h3>💬 ЧАТ</h3>
+                    <select id="chatFriendSelect" style="width: 100%; padding: 8px; border-radius: 60px; margin-bottom: 12px;">
+                        <option value="">Выберите друга</option>
+                    </select>
+                    <div id="chatMessages" class="chat-box"></div>
+                    <div style="display: flex; gap: 12px; margin-top: 12px;">
+                        <input type="text" id="chatInput" placeholder="Сообщение..." style="flex: 1; padding: 8px; border-radius: 60px;">
+                        <button id="sendMsgBtn" class="action-btn" style="width: auto; padding: 8px 24px;">📤 ОТПРАВИТЬ</button>
+                    </div>
+                </div>
+            </div>
+            <div id="friendRequestsPanel" style="margin-top: 20px; background: #0f0f18; border-radius: 32px; padding: 20px;">
+                <h3>📨 ЗАЯВКИ В ДРУЗЬЯ</h3>
+                <div id="friendRequestsList"></div>
+            </div>
+        </div>
+
         <div id="accountTab" class="tab-content" style="display:none;"><div class="account-stats"><h3>👤 ПРОФИЛЬ</h3><p>Логин: <strong id="accLogin">-</strong></p><p>Баланс: <strong id="accBalance">0</strong> AMD</p><button id="logoutBtn" class="action-btn" style="background:#555;">🚪 Выйти</button></div></div>
         <div id="adminTab" class="tab-content" style="display:none;"><div class="admin-panel"><h4>🔧 УПРАВЛЕНИЕ</h4><input type="text" id="adminTargetUser" placeholder="Логин игрока"><input type="number" id="adminNewBalance" placeholder="Сумма"><button id="adminAddBalance" class="action-btn" style="background:#2c7a4d;">➕ Добавить баланс</button><button id="adminSetBalance" class="action-btn" style="background:#f7931a;">🎯 Установить баланс</button><hr><button id="adminAddGameBtn" class="action-btn">➕ ДОБАВИТЬ ИГРУ</button></div></div>
     </div>
@@ -180,9 +213,11 @@
 <div id="toastMsg" class="toast"></div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwiaQ4kYJuOXqhHQ2wrFN8iBkM0M3Ko65IyaKtBoqKefkkHJM5aSSF7AXae3z8G-KkU/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAEaTlgGwNe_Z5HIE0Zh9-Ud0zvE1xD-rjOFgLLMjjdJ5oiDH8BlE5S28uVwk9sLff/exec";
     let currentUser = null, isAdmin = false, currentBalance = 0;
     let shopGames = [], purchasedGames = [];
+    let friendsList = [], friendRequests = [], currentChatFriend = null;
+    let chatMessages = [];
 
     function showToast(msg, isError = false) {
         const toast = document.getElementById('toastMsg');
@@ -200,6 +235,81 @@
     async function refreshBalance() { if(!currentUser)return; const u=await loadUsers(); if(u[currentUser]){ currentBalance=u[currentUser].balance; document.getElementById('globalBalance').innerText=currentBalance.toFixed(2); document.getElementById('accBalance').innerText=currentBalance.toFixed(2); } }
     async function loadShopGames() { try { const res=await fetch(SCRIPT_URL+"?action=getGames"); const data=await res.json(); if(data.success) shopGames=data.games; else shopGames=[]; } catch(e){shopGames=[];} }
     async function loadLibrary() { if(!currentUser) return; try { const res=await fetch(`${SCRIPT_URL}?action=getPurchasedGames&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); purchasedGames=data.games||[]; } catch(e){ purchasedGames=[]; } }
+
+    // ========== ДРУЗЬЯ ==========
+    async function loadFriends() {
+        if(!currentUser) return;
+        try { const res=await fetch(`${SCRIPT_URL}?action=getFriends&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); friendsList=data.friends||[]; renderFriends(); } catch(e){ friendsList=[]; }
+        try { const res=await fetch(`${SCRIPT_URL}?action=getFriendRequests&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); friendRequests=data.requests||[]; renderRequests(); } catch(e){ friendRequests=[]; }
+    }
+    async function sendFriendRequest(toUser) {
+        if(toUser === currentUser) { showToast("❌ Нельзя добавить себя", true); return; }
+        const res=await fetch(`${SCRIPT_URL}?action=sendFriendRequest&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(toUser)}`);
+        const data=await res.json();
+        if(data.success) showToast(`✅ Заявка отправлена ${toUser}`, false);
+        else showToast(`❌ ${data.error}`, true);
+        loadFriends();
+    }
+    async function acceptFriendRequest(fromUser) {
+        await fetch(`${SCRIPT_URL}?action=acceptFriendRequest&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(fromUser)}`);
+        loadFriends();
+    }
+    async function rejectFriendRequest(fromUser) {
+        await fetch(`${SCRIPT_URL}?action=rejectFriendRequest&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(fromUser)}`);
+        loadFriends();
+    }
+    async function removeFriend(friendUser) {
+        if(confirm(`Удалить ${friendUser} из друзей?`)) {
+            await fetch(`${SCRIPT_URL}?action=removeFriend&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(friendUser)}`);
+            loadFriends();
+        }
+    }
+    async function loadMessages() {
+        if(!currentUser || !currentChatFriend) return;
+        const res=await fetch(`${SCRIPT_URL}?action=getMessages&user1=${encodeURIComponent(currentUser)}&user2=${encodeURIComponent(currentChatFriend)}`);
+        const data=await res.json();
+        chatMessages=data.messages||[];
+        renderChat();
+    }
+    async function sendMessage() {
+        const msg = document.getElementById('chatInput').value.trim();
+        if(!msg || !currentChatFriend) return;
+        await fetch(`${SCRIPT_URL}?action=sendMessage&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(currentChatFriend)}&message=${encodeURIComponent(msg)}`);
+        document.getElementById('chatInput').value = '';
+        loadMessages();
+    }
+    function renderFriends() {
+        const container = document.getElementById('friendsList');
+        const select = document.getElementById('chatFriendSelect');
+        if(!container) return;
+        container.innerHTML = '';
+        select.innerHTML = '<option value="">Выберите друга</option>';
+        for(let f of friendsList) {
+            container.innerHTML += `<div class="friend-item"><span>${f}</span><button class="action-btn" style="width:auto; background:#aa3333;" onclick="removeFriend('${f}')">🗑️ УДАЛИТЬ</button></div>`;
+            select.innerHTML += `<option value="${f}">${f}</option>`;
+        }
+    }
+    function renderRequests() {
+        const container = document.getElementById('friendRequestsList');
+        if(!container) return;
+        container.innerHTML = '';
+        for(let req of friendRequests) {
+            container.innerHTML += `<div class="friend-request"><span>📨 ${req} хочет добавить в друзья</span><button class="action-btn" style="width:auto; background:#2c7a4d; margin-left:12px;" onclick="acceptFriendRequest('${req}')">✅ ПРИНЯТЬ</button><button class="action-btn" style="width:auto; background:#aa3333;" onclick="rejectFriendRequest('${req}')">❌ ОТКЛОНИТЬ</button></div>`;
+        }
+    }
+    function renderChat() {
+        const container = document.getElementById('chatMessages');
+        if(!container) return;
+        container.innerHTML = '';
+        for(let m of chatMessages) {
+            const isOwn = m.from === currentUser;
+            container.innerHTML += `<div class="chat-message ${isOwn ? 'own' : ''}"><strong>${m.from}:</strong> ${m.message}<br><small>${new Date(m.timestamp).toLocaleTimeString()}</small></div>`;
+        }
+        container.scrollTop = container.scrollHeight;
+    }
+    window.removeFriend = removeFriend;
+    window.acceptFriendRequest = acceptFriendRequest;
+    window.rejectFriendRequest = rejectFriendRequest;
 
     async function buyGame(gameId, price, gameName) {
         if (price > 0 && currentBalance < price) { showToast("❌ Недостаточно AMD!", true); return; }
@@ -284,13 +394,16 @@
     document.getElementById('cancelAddGameBtn')?.addEventListener('click', () => document.getElementById('addGameModal').classList.remove('active'));
     document.getElementById('adminAddBalance')?.addEventListener('click',async()=>{ const t=document.getElementById('adminTargetUser').value.trim(), a=parseFloat(document.getElementById('adminNewBalance').value); if(!t||isNaN(a))return alert('Введите логин и сумму'); await addBalance(t,a); alert(`✅ Добавлено ${a} AMD для ${t}`); if(t===currentUser)await refreshBalance(); });
     document.getElementById('adminSetBalance')?.addEventListener('click',async()=>{ const t=document.getElementById('adminTargetUser').value.trim(), b=parseFloat(document.getElementById('adminNewBalance').value); if(!t||isNaN(b))return alert('Введите логин и баланс'); await setBalance(t,b); alert(`✅ Баланс ${t} = ${b} AMD`); if(t===currentUser)await refreshBalance(); });
+    document.getElementById('addFriendBtn')?.addEventListener('click', () => { const f = document.getElementById('addFriendInput').value.trim(); if(f) sendFriendRequest(f); document.getElementById('addFriendInput').value = ''; });
+    document.getElementById('sendMsgBtn')?.addEventListener('click', sendMessage);
+    document.getElementById('chatFriendSelect')?.addEventListener('change', (e) => { currentChatFriend = e.target.value; loadMessages(); });
+    setInterval(() => { if(currentUser && currentChatFriend) loadMessages(); }, 3000);
 
-    async function loginUser(login,password){ const btn=document.getElementById('doLoginBtn'),spin=document.getElementById('loginSpinner'); btn.disabled=true; spin.style.display='block'; document.getElementById('authMessage').innerHTML='⏳ Проверка...'; const users=await loadUsers(); const user=users[login]; btn.disabled=false; spin.style.display='none'; if(user&&user.password===password){ currentUser=login; isAdmin=user.isAdmin===true; document.getElementById('authPanel').style.display='none'; document.getElementById('registerPanel').style.display='none'; document.getElementById('gamePanel').style.display='block'; document.getElementById('accLogin').innerText=currentUser; await refreshBalance(); await loadLibrary(); if(isAdmin) document.getElementById('adminTabBtn').style.display='inline-block'; renderShop(); renderLibrary(); return true; } else { document.getElementById('authMessage').innerHTML='❌ Неверный логин или пароль'; return false; } }
+    async function loginUser(login,password){ const btn=document.getElementById('doLoginBtn'),spin=document.getElementById('loginSpinner'); btn.disabled=true; spin.style.display='block'; document.getElementById('authMessage').innerHTML='⏳ Проверка...'; const users=await loadUsers(); const user=users[login]; btn.disabled=false; spin.style.display='none'; if(user&&user.password===password){ currentUser=login; isAdmin=user.isAdmin===true; document.getElementById('authPanel').style.display='none'; document.getElementById('registerPanel').style.display='none'; document.getElementById('gamePanel').style.display='block'; document.getElementById('accLogin').innerText=currentUser; await refreshBalance(); await loadLibrary(); await loadFriends(); if(isAdmin) document.getElementById('adminTabBtn').style.display='inline-block'; renderShop(); renderLibrary(); return true; } else { document.getElementById('authMessage').innerHTML='❌ Неверный логин или пароль'; return false; } }
     async function registerUser(login,password){ const btn=document.getElementById('doRegisterBtn'),spin=document.getElementById('registerSpinner'); btn.disabled=true; spin.style.display='block'; document.getElementById('regMessage').innerHTML='⏳ Регистрация...'; const users=await loadUsers(); if(users[login]){ document.getElementById('regMessage').innerHTML='❌ Логин существует'; btn.disabled=false; spin.style.display='none'; return false; } if(!document.getElementById('agreeTerms').checked){ document.getElementById('regMessage').innerHTML='❌ Примите условия'; btn.disabled=false; spin.style.display='none'; return false; } await createUser(login,password); document.getElementById('regMessage').innerHTML='✅ Регистрация успешна!'; btn.disabled=false; spin.style.display='none'; setTimeout(()=>{ document.getElementById('registerPanel').style.display='none'; document.getElementById('authPanel').style.display='block'; },1500); return true; }
 
-    function switchTab(tabId){ document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none'); document.getElementById(`${tabId}Tab`).style.display='block'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.querySelector(`.nav-btn[data-tab="${tabId}"]`).classList.add('active'); if(tabId==='library') renderLibrary(); }
+    function switchTab(tabId){ document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none'); document.getElementById(`${tabId}Tab`).style.display='block'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.querySelector(`.nav-btn[data-tab="${tabId}"]`).classList.add('active'); if(tabId==='library') renderLibrary(); if(tabId==='social') loadFriends(); }
     document.querySelectorAll('.nav-btn').forEach(b=>{ b.addEventListener('click',()=>{ const tab=b.dataset.tab; if(tab==='admin'&&!isAdmin)return; switchTab(tab); }); });
-
     document.getElementById('doLoginBtn').onclick=async()=>{ const l=document.getElementById('loginUsername').value.trim(), p=document.getElementById('loginPassword').value.trim(); if(!l||!p){ document.getElementById('authMessage').innerHTML='Заполните поля'; return; } await loginUser(l,p); };
     document.getElementById('doRegisterBtn').onclick=async()=>{ const l=document.getElementById('regUsername').value.trim(), p=document.getElementById('regPassword').value.trim(); if(!l||!p){ document.getElementById('regMessage').innerHTML='Заполните поля'; return; } await registerUser(l,p); };
     document.getElementById('showRegisterLink').onclick=()=>{ document.getElementById('authPanel').style.display='none'; document.getElementById('registerPanel').style.display='block'; };
