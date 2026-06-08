@@ -213,7 +213,7 @@
 <div id="toastMsg" class="toast"></div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAEaTlgGwNe_Z5HIE0Zh9-Ud0zvE1xD-rjOFgLLMjjdJ5oiDH8BlE5S28uVwk9sLff/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHQuflUmi7zXkZ9cNoVy5XIvaRxwWepGmx1FZkrsqZeUcEZYXCeZyYM6BernFihJTF/exec";
     let currentUser = null, isAdmin = false, currentBalance = 0;
     let shopGames = [], purchasedGames = [];
     let friendsList = [], friendRequests = [], currentChatFriend = null;
@@ -236,77 +236,16 @@
     async function loadShopGames() { try { const res=await fetch(SCRIPT_URL+"?action=getGames"); const data=await res.json(); if(data.success) shopGames=data.games; else shopGames=[]; } catch(e){shopGames=[];} }
     async function loadLibrary() { if(!currentUser) return; try { const res=await fetch(`${SCRIPT_URL}?action=getPurchasedGames&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); purchasedGames=data.games||[]; } catch(e){ purchasedGames=[]; } }
 
-    // ========== ДРУЗЬЯ ==========
-    async function loadFriends() {
-        if(!currentUser) return;
-        try { const res=await fetch(`${SCRIPT_URL}?action=getFriends&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); friendsList=data.friends||[]; renderFriends(); } catch(e){ friendsList=[]; }
-        try { const res=await fetch(`${SCRIPT_URL}?action=getFriendRequests&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); friendRequests=data.requests||[]; renderRequests(); } catch(e){ friendRequests=[]; }
-    }
-    async function sendFriendRequest(toUser) {
-        if(toUser === currentUser) { showToast("❌ Нельзя добавить себя", true); return; }
-        const res=await fetch(`${SCRIPT_URL}?action=sendFriendRequest&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(toUser)}`);
-        const data=await res.json();
-        if(data.success) showToast(`✅ Заявка отправлена ${toUser}`, false);
-        else showToast(`❌ ${data.error}`, true);
-        loadFriends();
-    }
-    async function acceptFriendRequest(fromUser) {
-        await fetch(`${SCRIPT_URL}?action=acceptFriendRequest&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(fromUser)}`);
-        loadFriends();
-    }
-    async function rejectFriendRequest(fromUser) {
-        await fetch(`${SCRIPT_URL}?action=rejectFriendRequest&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(fromUser)}`);
-        loadFriends();
-    }
-    async function removeFriend(friendUser) {
-        if(confirm(`Удалить ${friendUser} из друзей?`)) {
-            await fetch(`${SCRIPT_URL}?action=removeFriend&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(friendUser)}`);
-            loadFriends();
-        }
-    }
-    async function loadMessages() {
-        if(!currentUser || !currentChatFriend) return;
-        const res=await fetch(`${SCRIPT_URL}?action=getMessages&user1=${encodeURIComponent(currentUser)}&user2=${encodeURIComponent(currentChatFriend)}`);
-        const data=await res.json();
-        chatMessages=data.messages||[];
-        renderChat();
-    }
-    async function sendMessage() {
-        const msg = document.getElementById('chatInput').value.trim();
-        if(!msg || !currentChatFriend) return;
-        await fetch(`${SCRIPT_URL}?action=sendMessage&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(currentChatFriend)}&message=${encodeURIComponent(msg)}`);
-        document.getElementById('chatInput').value = '';
-        loadMessages();
-    }
-    function renderFriends() {
-        const container = document.getElementById('friendsList');
-        const select = document.getElementById('chatFriendSelect');
-        if(!container) return;
-        container.innerHTML = '';
-        select.innerHTML = '<option value="">Выберите друга</option>';
-        for(let f of friendsList) {
-            container.innerHTML += `<div class="friend-item"><span>${f}</span><button class="action-btn" style="width:auto; background:#aa3333;" onclick="removeFriend('${f}')">🗑️ УДАЛИТЬ</button></div>`;
-            select.innerHTML += `<option value="${f}">${f}</option>`;
-        }
-    }
-    function renderRequests() {
-        const container = document.getElementById('friendRequestsList');
-        if(!container) return;
-        container.innerHTML = '';
-        for(let req of friendRequests) {
-            container.innerHTML += `<div class="friend-request"><span>📨 ${req} хочет добавить в друзья</span><button class="action-btn" style="width:auto; background:#2c7a4d; margin-left:12px;" onclick="acceptFriendRequest('${req}')">✅ ПРИНЯТЬ</button><button class="action-btn" style="width:auto; background:#aa3333;" onclick="rejectFriendRequest('${req}')">❌ ОТКЛОНИТЬ</button></div>`;
-        }
-    }
-    function renderChat() {
-        const container = document.getElementById('chatMessages');
-        if(!container) return;
-        container.innerHTML = '';
-        for(let m of chatMessages) {
-            const isOwn = m.from === currentUser;
-            container.innerHTML += `<div class="chat-message ${isOwn ? 'own' : ''}"><strong>${m.from}:</strong> ${m.message}<br><small>${new Date(m.timestamp).toLocaleTimeString()}</small></div>`;
-        }
-        container.scrollTop = container.scrollHeight;
-    }
+    async function loadFriends() { if(!currentUser) return; try { const r=await fetch(`${SCRIPT_URL}?action=getFriends&login=${encodeURIComponent(currentUser)}`); const d=await r.json(); friendsList=d.friends||[]; renderFriends(); } catch(e){ friendsList=[]; } try { const r=await fetch(`${SCRIPT_URL}?action=getFriendRequests&login=${encodeURIComponent(currentUser)}`); const d=await r.json(); friendRequests=d.requests||[]; renderRequests(); } catch(e){ friendRequests=[]; } }
+    async function sendFriendRequest(to) { if(to===currentUser){ showToast("❌ Нельзя добавить себя",true); return; } const res=await fetch(`${SCRIPT_URL}?action=sendFriendRequest&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(to)}`); const data=await res.json(); if(data.success){ showToast(`✅ Заявка отправлена ${to}`,false); loadFriends(); } else showToast(`❌ ${data.error}`,true); }
+    async function acceptFriendRequest(friend){ await fetch(`${SCRIPT_URL}?action=acceptFriendRequest&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(friend)}`); loadFriends(); }
+    async function rejectFriendRequest(friend){ await fetch(`${SCRIPT_URL}?action=rejectFriendRequest&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(friend)}`); loadFriends(); }
+    async function removeFriend(friend){ if(confirm(`Удалить ${friend} из друзей?`)){ await fetch(`${SCRIPT_URL}?action=removeFriend&user=${encodeURIComponent(currentUser)}&friend=${encodeURIComponent(friend)}`); loadFriends(); } }
+    async function loadMessages() { if(!currentUser || !currentChatFriend) return; const res=await fetch(`${SCRIPT_URL}?action=getMessages&user1=${encodeURIComponent(currentUser)}&user2=${encodeURIComponent(currentChatFriend)}`); const data=await res.json(); chatMessages=data.messages||[]; renderChat(); }
+    async function sendMessage() { const msg=document.getElementById('chatInput').value.trim(); if(!msg||!currentChatFriend) return; await fetch(`${SCRIPT_URL}?action=sendMessage&from=${encodeURIComponent(currentUser)}&to=${encodeURIComponent(currentChatFriend)}&message=${encodeURIComponent(msg)}`); document.getElementById('chatInput').value=''; loadMessages(); }
+    function renderFriends() { const container=document.getElementById('friendsList'); const select=document.getElementById('chatFriendSelect'); if(!container) return; container.innerHTML=''; select.innerHTML='<option value="">Выберите друга</option>'; for(let f of friendsList){ container.innerHTML+=`<div class="friend-item"><span>${f}</span><button class="action-btn" style="width:auto; background:#aa3333;" onclick="removeFriend('${f}')">🗑️ УДАЛИТЬ</button></div>`; select.innerHTML+=`<option value="${f}">${f}</option>`; } }
+    function renderRequests() { const container=document.getElementById('friendRequestsList'); if(!container) return; container.innerHTML=''; for(let req of friendRequests){ container.innerHTML+=`<div class="friend-request"><span>📨 ${req} хочет добавить в друзья</span><button class="action-btn" style="width:auto; background:#2c7a4d;" onclick="acceptFriendRequest('${req}')">✅ ПРИНЯТЬ</button><button class="action-btn" style="width:auto; background:#aa3333;" onclick="rejectFriendRequest('${req}')">❌ ОТКЛОНИТЬ</button></div>`; } }
+    function renderChat() { const container=document.getElementById('chatMessages'); if(!container) return; container.innerHTML=''; for(let m of chatMessages){ const isOwn=m.from===currentUser; container.innerHTML+=`<div class="chat-message ${isOwn?'own':''}"><strong>${m.from}:</strong> ${m.message}<br><small>${new Date(m.timestamp).toLocaleTimeString()}</small></div>`; } container.scrollTop=container.scrollHeight; }
     window.removeFriend = removeFriend;
     window.acceptFriendRequest = acceptFriendRequest;
     window.rejectFriendRequest = rejectFriendRequest;
@@ -314,17 +253,11 @@
     async function buyGame(gameId, price, gameName) {
         if (price > 0 && currentBalance < price) { showToast("❌ Недостаточно AMD!", true); return; }
         if (purchasedGames.some(g => g.id == gameId)) { showToast(`❌ Игра "${gameName}" уже куплена!`, true); return; }
-        const actionText = price === 0 ? "забрать бесплатно" : `купить за ${price} AMD`;
-        if (confirm(`${actionText} "${gameName}"?`)) {
+        if (confirm(`${price === 0 ? "Забрать бесплатно" : `Купить за ${price} AMD`} "${gameName}"?`)) {
             const res = await fetch(`${SCRIPT_URL}?action=buyGame&login=${encodeURIComponent(currentUser)}&gameId=${gameId}&price=${price}`);
             const data = await res.json();
-            if(data.success) {
-                await refreshBalance();
-                await loadLibrary();
-                showToast(`✅ Игра "${gameName}" добавлена в библиотеку!`, false);
-                renderShop();
-                renderLibrary();
-            } else { showToast("❌ Ошибка при покупке", true); }
+            if(data.success) { await refreshBalance(); await loadLibrary(); showToast(`✅ Игра "${gameName}" добавлена в библиотеку!`, false); renderShop(); renderLibrary(); }
+            else { showToast("❌ Ошибка при покупке", true); }
         }
     }
     
