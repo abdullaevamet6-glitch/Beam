@@ -515,17 +515,21 @@
         if (currentUser && currentChatFriend) loadMessages(); 
     }, 3000);
 
+    // ============ ИСПРАВЛЕННАЯ ФУНКЦИЯ ВХОДА ============
     async function loginUser(login, password) { 
         const btn = document.getElementById('doLoginBtn'); 
         const spin = document.getElementById('loginSpinner'); 
         btn.disabled = true; 
         spin.style.display = 'block'; 
         document.getElementById('authMessage').innerHTML = '⏳ Проверка...'; 
+        
         const users = await loadUsers(); 
         const user = users[login]; 
+        
         btn.disabled = false; 
         spin.style.display = 'none'; 
-        if (user && user.password === password) { 
+        
+        if (user && String(user.password) === String(password)) { 
             currentUser = login; 
             isAdmin = user.isAdmin === true; 
             document.getElementById('authPanel').style.display = 'none'; 
