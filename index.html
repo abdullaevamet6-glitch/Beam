@@ -15,7 +15,6 @@
         }
         .container { max-width: 1400px; margin: 0 auto; }
 
-        /* ВХОД */
         .auth-card, .register-card {
             background: rgba(20,20,35,0.95);
             backdrop-filter: blur(12px);
@@ -56,7 +55,6 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ОСНОВНАЯ ПАНЕЛЬ */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -79,7 +77,6 @@
         .nav-tabs .nav-btn { flex: 0 0 auto; background: #1a1a2a; border: none; padding: 10px 24px; border-radius: 40px; color: #ccc; cursor: pointer; }
         .nav-btn.active { background: #f7931a; color: black; }
 
-        /* КАТАЛОГИ */
         .games-catalog, .library-catalog {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -205,15 +202,16 @@
     async function loadLibrary() { if(!currentUser) return; try { const res=await fetch(`${SCRIPT_URL}?action=getPurchasedGames&login=${encodeURIComponent(currentUser)}`); const data=await res.json(); purchasedGames=data.games||[]; } catch(e){ purchasedGames=[]; } }
 
     async function buyGame(gameId, price, gameName) {
-        if (currentBalance < price) { showToast("❌ Недостаточно AMD!", true); return; }
+        if (price > 0 && currentBalance < price) { showToast("❌ Недостаточно AMD!", true); return; }
         if (purchasedGames.some(g => g.id == gameId)) { showToast(`❌ Игра "${gameName}" уже куплена!`, true); return; }
-        if (confirm(`Купить "${gameName}" за ${price} AMD?`)) {
+        const actionText = price === 0 ? "забрать бесплатно" : `купить за ${price} AMD`;
+        if (confirm(`${actionText} "${gameName}"?`)) {
             const res = await fetch(`${SCRIPT_URL}?action=buyGame&login=${encodeURIComponent(currentUser)}&gameId=${gameId}&price=${price}`);
             const data = await res.json();
             if(data.success) {
                 await refreshBalance();
                 await loadLibrary();
-                showToast(`✅ Игра "${gameName}" куплена!`, false);
+                showToast(`✅ Игра "${gameName}" добавлена в библиотеку!`, false);
                 renderShop();
                 renderLibrary();
             } else { showToast("❌ Ошибка при покупке", true); }
@@ -228,13 +226,14 @@
         container.innerHTML = '';
         for (const game of shopGames) {
             const isPurchased = purchasedGames.some(g => g.id == game.id);
+            const isFree = game.price === 0;
             const card = document.createElement('div');
             card.className = 'game-card';
             card.innerHTML = `
                 <div class="game-emoji">${game.image || '🎮'}</div>
                 <div class="game-title">${game.name}</div>
-                <div class="game-price">💰 ${game.price} AMD</div>
-                ${!isPurchased ? `<button class="action-btn buy-btn" data-id="${game.id}" data-price="${game.price}" data-name="${game.name}">🛒 КУПИТЬ</button>` : `<button class="action-btn" disabled style="background:#555;">✅ УЖЕ КУПЛЕНА</button>`}
+                <div class="game-price">${isFree ? '🎁 БЕСПЛАТНО' : '💰 ' + game.price + ' AMD'}</div>
+                ${!isPurchased ? `<button class="action-btn buy-btn" data-id="${game.id}" data-price="${game.price}" data-name="${game.name}">${isFree ? '🎁 ЗАБРАТЬ' : '🛒 КУПИТЬ'}</button>` : `<button class="action-btn" disabled style="background:#555;">✅ В БИБЛИОТЕКЕ</button>`}
             `;
             container.appendChild(card);
         }
@@ -247,7 +246,7 @@
         const container = document.getElementById('libraryCatalog');
         if (!container) return;
         await loadLibrary();
-        if(purchasedGames.length === 0) { container.innerHTML = '<div class="empty-library">📭 У вас пока нет купленных игр</div>'; return; }
+        if(purchasedGames.length === 0) { container.innerHTML = '<div class="empty-library">📭 У вас пока нет игр</div>'; return; }
         container.innerHTML = '';
         for (const game of purchasedGames) {
             const card = document.createElement('div');
