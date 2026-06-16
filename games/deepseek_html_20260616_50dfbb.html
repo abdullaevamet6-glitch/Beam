@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Секундомер — BEAM</title>
+    <style>
+        body{background:#0a0a1a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:monospace;margin:0;padding:20px}
+        .game{background:#000000aa;backdrop-filter:blur(10px);border-radius:48px;padding:25px;border:1px solid #f7931a;text-align:center;max-width:500px;width:100%}
+        h2{margin:0 0 15px 0;color:#f7931a}
+        .target{background:#1e1e2e;display:inline-block;padding:8px 20px;border-radius:60px;color:#ffcc88;margin-bottom:15px}
+        .time{font-size:64px;font-weight:bold;margin:20px 0;background:#00000066;border-radius:40px;padding:15px;color:white;font-family:monospace}
+        .blind .time{visibility:hidden;position:relative}
+        .blind .time::after{content:"???";visibility:visible;position:absolute;left:0;right:0;top:15px;font-size:64px;color:#aaa}
+        button{background:#f7931a;border:none;font-size:18px;font-weight:bold;margin:5px;padding:10px 20px;border-radius:60px;cursor:pointer;transition:0.05s}
+        button:active{transform:scale(0.96)}
+        .reset-btn{background:#3a2a3a;color:white;border:1px solid #f7931a}
+        .result{margin-top:15px;font-size:16px;background:#00000077;padding:10px;border-radius:50px;color:white}
+        .mode-group,.diff-group{margin:10px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+        .mode-btn,.diff-btn{background:#2a2a3a;color:white;font-size:14px;padding:6px 15px}
+        .mode-btn.active,.diff-btn.active{background:#f7931a;color:black}
+    </style>
+</head>
+<body>
+<div class="game" id="game">
+    <h2>⏱️ Секундомер</h2>
+    <div class="target">🎯 Цель: <span id="targetSec">5.000</span> сек</div>
+    <div class="time" id="display">0.000</div>
+    <div><button id="startBtn">▶ СТАРТ</button><button id="stopBtn" disabled>⏹️ СТОП</button></div>
+    <div class="mode-group"><button class="mode-btn active" data-mode="visible">👁️ Режим 1 (видно время)</button><button class="mode-btn" data-mode="blind">🙈 Режим 2 (не видно)</button></div>
+    <div class="diff-group"><button class="diff-btn active" data-diff="easy">🟢 Лёгкий (целые)</button><button class="diff-btn" data-diff="medium">🟡 Средний (половинки)</button><button class="diff-btn" data-diff="hard">🔴 Сложный (дроби)</button></div>
+    <button id="resetBtn" class="reset-btn">🔄 Новая игра</button>
+    <div id="result" class="result">⚡ Выбери режим и сложность → СТАРТ</div>
+</div>
+<script>
+    let running=false,startTime=0,timer=null,target=5.000,mode="visible",diff="easy";
+    const targetSpan=document.getElementById("targetSec"),displayDiv=document.getElementById("display"),startBtn=document.getElementById("startBtn"),stopBtn=document.getElementById("stopBtn"),resetBtn=document.getElementById("resetBtn"),resultDiv=document.getElementById("result"),gameDiv=document.getElementById("game");
+    function randomTargetByDiff(){let base=Math.random()*6+2;if(diff==="easy")target=Math.round(base);else if(diff==="medium")target=Math.round(base*2)/2;else target=parseFloat(base.toFixed(3));target=Math.min(8,Math.max(2,target));targetSpan.innerText=target.toFixed(3);}
+    function updateDisplay(now){if(mode==="visible")displayDiv.innerText=((now-startTime)/1000).toFixed(3);else displayDiv.innerText="0.000";}
+    function start(){if(running)return;running=true;startTime=Date.now();if(timer)clearInterval(timer);timer=setInterval(()=>{if(running){let now=Date.now();if(mode==="visible")displayDiv.innerText=((now-startTime)/1000).toFixed(3);}},30);startBtn.disabled=true;stopBtn.disabled=false;resultDiv.innerHTML="⏳ Отсчёт идёт... нажми СТОП точно на цель!";}
+    function stop(){if(!running)return;running=false;if(timer)clearInterval(timer);let elapsed=(Date.now()-startTime)/1000;let diffSec=elapsed-target;let absDiff=Math.abs(diffSec);let msg="";if(absDiff<0.03)msg="🎉 ИДЕАЛЬНО!";else if(absDiff<0.1)msg="👍 Отлично";else if(absDiff<0.25)msg="👌 Хорошо";else msg="😬 Промах";resultDiv.innerHTML=`⏱️ Твоё время: ${elapsed.toFixed(3)} сек | Цель: ${target.toFixed(3)} сек | Разница: ${diffSec>0?"+":""}${diffSec.toFixed(3)} сек<br>${msg}`;startBtn.disabled=false;stopBtn.disabled=true;}
+    function reset(){if(running){if(timer)clearInterval(timer);running=false;}randomTargetByDiff();displayDiv.innerText="0.000";startBtn.disabled=false;stopBtn.disabled=true;resultDiv.innerHTML="🔄 Новая цель! Нажми СТАРТ";}
+    function setMode(m){mode=m;if(mode==="blind")gameDiv.classList.add("blind");else gameDiv.classList.remove("blind");document.querySelectorAll(".mode-btn").forEach(btn=>btn.classList.toggle("active",btn.dataset.mode===m));reset();}
+    function setDiff(d){diff=d;document.querySelectorAll(".diff-btn").forEach(btn=>btn.classList.toggle("active",btn.dataset.diff===d));reset();}
+    document.querySelectorAll(".mode-btn").forEach(btn=>btn.addEventListener("click",()=>setMode(btn.dataset.mode)));
+    document.querySelectorAll(".diff-btn").forEach(btn=>btn.addEventListener("click",()=>setDiff(btn.dataset.diff)));
+    startBtn.addEventListener("click",start);stopBtn.addEventListener("click",stop);resetBtn.addEventListener("click",reset);
+    randomTargetByDiff();displayDiv.innerText="0.000";
+</script>
+</body>
+</html>
