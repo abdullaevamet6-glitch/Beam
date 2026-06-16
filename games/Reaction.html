@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Реакция</title><style>
+body{background:#0a0a1a;color:white;font-family:monospace;text-align:center;padding:20px;}
+#game-area{width:400px;height:300px;margin:20px auto;background:#1a3a1a;display:flex;align-items:center;justify-content:center;border-radius:20px;cursor:pointer;font-size:24px;transition:0.05s;}
+.red{background:#5a1a1a !important;}
+.green{background:#1a6a1a !important;}
+</style></head>
+<body>
+<h2>👆 ТЕСТ РЕАКЦИИ</h2>
+<div id="game-area" class="red" onclick="handleClick()">🔴 ЖДИ ЗЕЛЁНЫЙ 🔴</div>
+<p id="time-display">⚡ Нажми когда станет зелёным</p>
+<button onclick="startRound()">🔄 Новая попытка</button>
+<script>
+let state='waiting'; let startTime=0; let timeoutId=null;
+function startRound(){
+ if(timeoutId) clearTimeout(timeoutId);
+ state='waiting';
+ document.getElementById('game-area').innerHTML='🔴 ЖДИ... 🔴';
+ document.getElementById('game-area').className='red';
+ document.getElementById('time-display').innerHTML='⏳ Ожидание... кликни когда станет зелёным';
+ let delay=Math.random()*3000+1000;
+ timeoutId=setTimeout(()=>{
+   state='ready';
+   document.getElementById('game-area').innerHTML='🟢 ЖМИ! 🟢';
+   document.getElementById('game-area').className='green';
+   startTime=Date.now();
+   timeoutId=null;
+ },delay);
+}
+function handleClick(){
+ if(state==='ready'){
+   let reaction=Date.now()-startTime;
+   document.getElementById('time-display').innerHTML=`⚡ Твоя реакция: ${reaction} мс ⚡`;
+   state='done';
+   document.getElementById('game-area').innerHTML='✅ ГОТОВО ✅';
+   if(timeoutId) clearTimeout(timeoutId);
+ } else if(state==='waiting'){
+   document.getElementById('time-display').innerHTML='❌ Слишком рано! Жди зелёный!';
+   if(timeoutId){ clearTimeout(timeoutId); startRound(); }
+ } else { startRound(); }
+}
+startRound();
+</script></body></html>
