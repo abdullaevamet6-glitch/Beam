@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Угадай число</title><style>
+body{background:#0a0a1a;color:white;font-family:monospace;text-align:center;padding:20px;}
+button{background:#f7931a;border:none;padding:10px 20px;margin:5px;border-radius:20px;cursor:pointer;}
+input{padding:10px;border-radius:20px;border:none;text-align:center;}
+</style></head>
+<body>
+<h2>🎲 Угадай число (1-10)</h2>
+<p>Попыток осталось: <span id="attempts">3</span></p>
+<input type="number" id="guess" min="1" max="10" placeholder="Число">
+<button onclick="checkGuess()">🔍 Угадать</button>
+<button onclick="newGame()">🔄 Новая игра</button>
+<p id="message"></p>
+<script>
+let secret, attempts;
+function newGame(){ secret=Math.floor(Math.random()*10)+1; attempts=3; document.getElementById('attempts').innerText=attempts; document.getElementById('message').innerHTML=''; document.getElementById('guess').value=''; }
+function checkGuess(){
+ let guess=parseInt(document.getElementById('guess').value);
+ if(isNaN(guess)){ document.getElementById('message').innerHTML='❌ Введи число!'; return; }
+ attempts--; document.getElementById('attempts').innerText=attempts;
+ if(guess===secret){ document.getElementById('message').innerHTML='🎉 ПОБЕДА! Число было '+secret; newGame(); return; }
+ if(attempts===0){ document.getElementById('message').innerHTML='💀 Проиграл! Число было '+secret; newGame(); return; }
+ let hint=(guess<secret)?'📈 Больше':'📉 Меньше';
+ document.getElementById('message').innerHTML=`❌ Не угадал! ${hint}. Осталось ${attempts} попыток`;
+}
+newGame();
+</script></body></html>
