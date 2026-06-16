@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>BEAM OS — Полноценная ОС</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', monospace; overflow: hidden; height: 100vh; background: #0a0a1a; }
+        
+        /* ПРИВЕТСТВИЕ */
+        .welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #050510 100%);
+            z-index: 10000; display: flex; flex-direction: column; justify-content: center;
+            align-items: center; transition: opacity 2s ease-out;
+        }
+        .welcome-logo { font-size: 80px; margin-bottom: 20px; animation: logoGlow 2s ease-out; }
+        @keyframes logoGlow { 0% { opacity: 0; transform: scale(0.8); } 50% { opacity: 1; text-shadow: 0 0 30px #f7931a; transform: scale(1.1); } 100% { opacity: 1; } }
+        .welcome-title { font-size: 36px; font-weight: bold; color: #f7931a; letter-spacing: 4px; margin-bottom: 15px; }
+        .welcome-slogan { font-size: 14px; color: #aaa; text-align: center; }
+        .welcome-timer { margin-top: 40px; font-size: 12px; color: #555; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+        .welcome-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        
+        /* АНИМАЦИЯ ПЕРЕЗАГРУЗКИ */
+        .reboot-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a0a1a; z-index: 20000; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+            animation: fadeIn 0.5s ease;
+        }
+        .reboot-overlay.active { display: flex; }
+        .reboot-spinner {
+            width: 60px; height: 60px; border: 4px solid #2a2a3a;
+            border-top-color: #f7931a; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .reboot-text { color: #f7931a; font-size: 18px; letter-spacing: 2px; }
+        
+        .desktop { width: 100%; height: 100%; position: relative; overflow: hidden; display: none; background-size: cover; background-position: center; }
+        .desktop.active { display: block; }
+        
+        .desktop-icons { position: relative; width: 100%; height: calc(100% - 48px); z-index: 10; }
+        .desktop-icon {
+            position: absolute; display: flex; flex-direction: column; align-items: center;
+            width: 85px; cursor: pointer; padding: 8px; border-radius: 10px; z-index: 10;
+        }
+        .desktop-icon.dragging { opacity: 0.8; z-index: 1000; }
+        .desktop-icon:hover { background: rgba(247,147,26,0.2); }
+        .desktop-icon-emoji { font-size: 44px; margin-bottom: 5px; }
+        .desktop-icon-text { font-size: 11px; color: white; text-align: center; text-shadow: 1px 1px 0 black; }
+        
+        .taskbar {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 48px;
+            background: rgba(20,20,35,0.95); backdrop-filter: blur(10px);
+            display: flex; align-items: center; padding: 0 15px; gap: 10px;
+            border-top: 1px solid rgba(247,147,26,0.3); z-index: 1000;
+        }
+        .taskbar-start { background: #f7931a; color: black; padding: 8px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .taskbar-search { background: #2a2a3a; border: none; color: white; padding: 6px 12px; border-radius: 20px; width: 250px; outline: none; }
+        .taskbar-windows { display: flex; gap: 8px; flex: 1; overflow-x: auto; }
+        .taskbar-window-btn { background: rgba(50,50,70,0.8); padding: 5px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        .taskbar-window-btn:hover { background: rgba(247,147,26,0.5); }
+        .taskbar-tray { display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 20px; cursor: pointer; }
+        .taskbar-time { color: white; font-size: 12px; }
+        
+        .start-menu {
+            position: absolute; bottom: 50px; left: 10px; width: 550px;
+            background: rgba(30,30,50,0.98); backdrop-filter: blur(15px);
+            border-radius: 12px; border: 1px solid #f7931a; display: none; z-index: 2000;
+        }
+        .start-menu.active { display: block; }
+        .start-menu-header { padding: 15px; border-bottom: 1px solid #2a2a3a; display: flex; gap: 15px; }
+        .start-menu-user { width: 48px; height: 48px; background: #f7931a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .start-menu-user-info { flex: 1; }
+        .start-menu-user-name { color: white; font-weight: bold; }
+        .start-menu-search { width: 100%; padding: 8px; background: #0f0f18; border: 1px solid #2a2a3a; color: white; border-radius: 20px; outline: none; margin-top: 10px; }
+        .start-menu-content { display: flex; padding: 10px; max-height: 500px; overflow-y: auto; }
+        .start-menu-apps { flex: 2; }
+        .start-menu-tiles { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding-left: 10px; border-left: 1px solid #2a2a3a; }
+        .start-tile { background: #2a2a3a; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; }
+        .start-tile:hover { background: #f7931a; color: black; }
+        .start-menu-item { padding: 10px 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-radius: 8px; margin: 2px; }
+        .start-menu-item:hover { background: rgba(247,147,26,0.3); }
+        
+        .power-menu {
+            position: absolute; bottom: 50px; right: 10px; width: 200px;
+            background: rgba(30,30,50,0.98); backdrop-filter: blur(15px);
+            border-radius: 12px; border: 1px solid #f7931a; display: none; z-index: 2000;
+        }
+        .power-menu.active { display: block; }
+        .power-menu-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-radius: 8px; margin: 4px; }
+        .power-menu-item:hover { background: rgba(247,147,26,0.3); }
+        
+        .context-menu {
+            position: fixed; background: #2a2a3a; border: 1px solid #f7931a;
+            border-radius: 8px; padding: 5px; z-index: 10000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .context-menu-item { padding: 8px 20px; cursor: pointer; border-radius: 5px; color: white; }
+        .context-menu-item:hover { background: #f7931a; color: black; }
+        
+        .window {
+            position: absolute; background: #1a1a2e; border-radius: 12px;
+            border: 1px solid #f7931a; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; z-index: 100;
+            min-width: 300px; min-height: 250px;
+        }
+        .window.active { display: flex; animation: windowAppear 0.2s ease; }
+        @keyframes windowAppear { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .window.maximized { top: 0 !important; left: 0 !important; width: 100% !important; height: calc(100% - 48px) !important; border-radius: 0; }
+        .window.minimized { display: none !important; }
+        .window-header {
+            background: #2a2a3a; padding: 8px 12px; border-radius: 12px 12px 0 0;
+            display: flex; justify-content: space-between; align-items: center; cursor: move;
+        }
+        .window-title { color: #f7931a; font-weight: bold; font-size: 13px; }
+        .window-controls { display: flex; gap: 8px; }
+        .window-minimize, .window-maximize, .window-close {
+            background: none; border: none; color: white; cursor: pointer;
+            font-size: 14px; padding: 0 5px; border-radius: 4px;
+        }
+        .window-minimize:hover { background: #f7931a; color: black; }
+        .window-maximize:hover { background: #2c7a4d; }
+        .window-close:hover { background: #ff4444; }
+        .window-content { padding: 15px; color: white; flex: 1; overflow: auto; }
+        .resize-handle { position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; cursor: nw-resize; background: linear-gradient(135deg, transparent 50%, #f7931a 50%); border-radius: 0 0 12px 0; }
+        
+        .file-list { max-height: 300px; overflow-y: auto; margin-top: 10px; }
+        .file-item { background: #0f0f18; padding: 10px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .drive-item { background: #1a2a3a; padding: 12px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #f7931a; cursor: pointer; }
+        
+        .task-manager-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: #0f0f18; padding: 10px; border-radius: 8px; text-align: center; }
+        .device-item { background: #0f0f18; padding: 10px; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; }
+        
+        .console-output { background: #0a0a1a; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 12px; height: 300px; overflow-y: auto; color: #0f0; }
+        .console-input { display: flex; gap: 10px; margin-top: 10px; }
+        .console-input input { flex: 1; background: #0f0f18; border: 1px solid #2a2a3a; color: #0f0; padding: 8px; border-radius: 8px; font-family: monospace; }
+        
+        .browser iframe { width: 100%; height: 450px; border: none; border-radius: 8px; background: white; }
+        .browser input { width: 100%; padding: 8px; background: #0f0f18; border: 1px solid #2a2a3a; color: white; border-radius: 8px; margin-bottom: 10px; }
+        .calculator { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+        .calc-display { grid-column: span 4; background: #0f0f18; padding: 15px; text-align: right; font-size: 24px; border-radius: 8px; margin-bottom: 10px; }
+        .calc-btn { background: #2c3e66; border: none; color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        .calc-btn.operator { background: #f7931a; color: black; }
+        .notepad textarea { width: 100%; height: 250px; background: #0f0f18; border: 1px solid #2a2a3a; color: white; padding: 10px; border-radius: 8px; font-family: monospace; resize: none; }
+        .coder textarea { width: 100%; height: 250px; background: #0f0f18; border: 1px solid #2a2a3a; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace; }
+        .preview-frame { width: 100%; height: 300px; border: 1px solid #2a2a3a; border-radius: 8px; background: white; margin-top: 10px; }
+        
+        .settings-grid { display: flex; flex-direction: column; gap: 15px; }
+        .settings-category { background: #0f0f18; border-radius: 12px; padding: 15px; }
+        .settings-category h4 { color: #f7931a; margin-bottom: 10px; }
+        .settings-item { margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .settings-item select, .settings-item input { background: #2a2a3a; border: 1px solid #f7931a; color: white; padding: 5px 10px; border-radius: 6px; }
+        
+        .save-dialog {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #1a1a2e; border: 2px solid #f7931a; border-radius: 16px;
+            padding: 20px; z-index: 5000; display: none; flex-direction: column;
+            gap: 15px; min-width: 350px; backdrop-filter: blur(15px);
+        }
+        .save-dialog.active { display: flex; }
+        .save-dialog input, .save-dialog select { background: #0f0f18; border: 1px solid #2a2a3a; color: white; padding: 8px; border-radius: 8px; }
+        .save-dialog button { background: #f7931a; border: none; color: black; padding: 8px; border-radius: 8px; cursor: pointer; }
+        
+        .notification {
+            position: fixed; bottom: 60px; right: 20px; background: rgba(0,0,0,0.9);
+            border-left: 3px solid #f7931a; padding: 12px 20px; border-radius: 8px;
+            z-index: 3000; color: white; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-logo">⚡</div>
+        <div class="welcome-title">BEAM OS</div>
+        <div class="welcome-slogan">Временная анонимная среда<br>Данные сохраняются в браузере</div>
+        <div class="welcome-timer">Загрузка...</div>
+    </div>
+    
+    <div class="reboot-overlay" id="rebootOverlay">
+        <div class="reboot-spinner"></div>
+        <div class="reboot-text" id="rebootText">Перезагрузка...</div>
+    </div>
+    
+    <div class="desktop" id="desktop" style="background-image: url('https://images.pexels.com/photos/531880/pexels-photo-531880.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&dpr=2');">
+        <div class="desktop-icons" id="desktopIcons"></div>
+        
+        <div class="taskbar">
+            <div class="taskbar-start" id="startBtn">🚀 ПУСК</div>
+            <input type="text" class="taskbar-search" id="globalSearch" placeholder="🔍 Поиск...">
+            <div class="taskbar-windows" id="taskbarWindows"></div>
+            <div class="taskbar-tray" id="trayBtn">🔊 🔋 🌐 <span class="taskbar-time" id="clock"></span></div>
+        </div>
+        
+        <div class="start-menu" id="startMenu">
+            <div class="start-menu-header">
+                <div class="start-menu-user">👤</div>
+                <div class="start-menu-user-info">
+                    <div class="start-menu-user-name">Пользователь</div>
+                    <input type="text" class="start-menu-search" id="startSearch" placeholder="Поиск...">
+                </div>
+            </div>
+            <div class="start-menu-content">
+                <div class="start-menu-apps" id="startMenuApps"></div>
+                <div class="start-menu-tiles" id="startTiles"></div>
+            </div>
+        </div>
+        
+        <div class="power-menu" id="powerMenu">
+            <div class="power-menu-item" id="restartBtn">🔄 Перезагрузка</div>
+            <div class="power-menu-item" id="shutdownBtn">🔌 Выключение</div>
+            <hr><div class="power-menu-item" id="cancelPowerBtn">❌ Отмена</div>
+        </div>
+        
+        <div id="contextMenu" class="context-menu">
+            <div class="context-menu-item" id="ctxRefresh">🔄 Обновить</div>
+            <div class="context-menu-item" id="ctxNewShortcut">🔗 Создать ярлык</div>
+            <hr><div class="context-menu-item" id="ctxPersonalize">⚙️ Персонализация</div>
+        </div>
+        
+        <!-- ОКНА -->
+        <div id="windowExplorer" class="window" style="width:700px; height:500px; left:100px; top:80px;">
+            <div class="window-header"><span class="window-title">📂 Проводник</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content"><div id="driveList"></div><div id="folderContent" class="file-list"></div></div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowBrowser" class="window" style="width:900px; height:600px; left:120px; top:50px;">
+            <div class="window-header"><span class="window-title">🌐 BEAM Browser</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content"><div class="browser"><input type="text" id="urlInput" value="https://www.google.com"><button id="goBtn" style="background:#f7931a; margin-bottom:10px;">Перейти</button><iframe id="browserFrame" src="https://www.google.com" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation"></iframe></div></div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowCalculator" class="window" style="width:350px; height:480px; left:150px; top:100px;">
+            <div class="window-header"><span class="window-title">📱 Калькулятор</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content"><div class="calc-display" id="calcDisplay">0</div><div class="calculator"><button class="calc-btn" data-num="7">7</button><button class="calc-btn" data-num="8">8</button><button class="calc-btn" data-num="9">9</button><button class="calc-btn operator" data-op="/">÷</button><button class="calc-btn" data-num="4">4</button><button class="calc-btn" data-num="5">5</button><button class="calc-btn" data-num="6">6</button><button class="calc-btn operator" data-op="*">×</button><button class="calc-btn" data-num="1">1</button><button class="calc-btn" data-num="2">2</button><button class="calc-btn" data-num="3">3</button><button class="calc-btn operator" data-op="-">-</button><button class="calc-btn" data-num="0">0</button><button class="calc-btn" data-num="00">00</button><button class="calc-btn" data-num=".">.</button><button class="calc-btn operator" data-op="+">+</button><button class="calc-btn operator" data-op="=">=</button><button class="calc-btn" id="calcClear">C</button></div></div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowNotepad" class="window" style="width:500px; height:450px; left:200px; top:80px;">
+            <div class="window-header"><span class="window-title">📝 Блокнот</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content"><div class="notepad"><textarea id="notepadText" placeholder="Введите текст..."></textarea><button id="saveNotepadBtn">💾 Сохранить</button><button id="loadNotepadBtn">📂 Открыть</button></div></div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowCoder" class="window" style="width:800px; height:650px; left:130px; top:60px;">
+            <div class="window-header"><span class="window-title">💻 HTML Кодер</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content"><div class="coder"><textarea id="codeEditor" placeholder="&lt;!DOCTYPE html&gt;&#10;&lt;html&gt;&#10;&lt;head&gt;&lt;title&gt;Мой проект&lt;/title&gt;&lt;/head&gt;&#10;&lt;body&gt;&lt;h1&gt;Привет, мир!&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea><div><select id="fileTypeSelect"><option value="html">HTML</option><option value="css">CSS</option><option value="js">JavaScript</option><option value="txt">Текстовый</option></select><button id="saveCodeBtn">💾 Сохранить проект</button><button id="runCodeBtn">▶ Запустить</button><button id="exportCodeBtn">📤 Экспорт HTML</button></div><iframe id="codePreview" class="preview-frame"></iframe></div></div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowCmd" class="window" style="width:700px; height:450px; left:180px; top:100px;">
+            <div class="window-header"><span class="window-title">💻 Командная строка</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content">
+                <div class="console-output" id="consoleOutput">Microsoft Windows [Version 10.0.19045.0]
+(c) Корпорация Майкрософт. Все права защищены.
+
+C:\Users\BEAM&gt;</div>
+                <div class="console-input"><input type="text" id="consoleInput" placeholder="Введите команду..."><button id="consoleRunBtn">Выполнить</button></div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowTaskManager" class="window" style="width:550px; height:450px; left:200px; top:100px;">
+            <div class="window-header"><span class="window-title">📊 Диспетчер задач</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content">
+                <div class="task-manager-stats">
+                    <div class="stat-card">💻 CPU<br><span id="cpuUsage">0</span>%</div>
+                    <div class="stat-card">📊 RAM<br><span id="ramUsage">0</span> MB</div>
+                    <div class="stat-card">🎯 Процессы<br><span id="processCount">0</span></div>
+                </div>
+                <div id="processList" class="file-list"></div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowDeviceManager" class="window" style="width:550px; height:400px; left:220px; top:120px;">
+            <div class="window-header"><span class="window-title">🖥️ Диспетчер устройств</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content">
+                <div class="device-item">💻 Процессор: AMD Ryzen 7 5800X</div>
+                <div class="device-item">🎮 Видеокарта: NVIDIA RTX 3070</div>
+                <div class="device-item">🔊 Звук: Realtek High Definition Audio</div>
+                <div class="device-item">🌐 Сеть: Intel Wi-Fi 6 AX200</div>
+                <div class="device-item">💾 Память: 16 GB DDR4</div>
+                <div class="device-item">📀 Диск: Samsung SSD 970 EVO 512GB</div>
+                <div class="device-item">🔋 Батарея: Литий-ионная</div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        
+        <div id="windowSettings" class="window" style="width:600px; height:550px; left:180px; top:120px;">
+            <div class="window-header"><span class="window-title">⚙️ Настройки</span><div class="window-controls"><button class="window-minimize">─</button><button class="window-maximize">□</button><button class="window-close">✕</button></div></div>
+            <div class="window-content">
+                <div class="settings-grid">
+                    <div class="settings-category"><h4>🖼️ Внешний вид</h4>
+                        <div class="settings-item"><span>Обои</span><select id="wallpaperSelect"><option value="0">Космос</option><option value="1">Горы</option><option value="2">Лес</option><option value="3">Пляж</option></select></div>
+                        <div class="settings-item"><span>Тема</span><select id="themeSelect"><option value="dark">Тёмная</option><option value="light">Светлая</option></select></div>
+                    </div>
+                    <div class="settings-category"><h4>🔊 Звук</h4>
+                        <div class="settings-item"><span>Громкость</span><input type="range" id="soundVolume" min="0" max="1" step="0.05" value="0.7"></div>
+                    </div>
+                    <div class="settings-category"><h4>💾 Система</h4>
+                        <div class="settings-item"><span>Очистить кэш</span><button id="clearCacheBtn" style="background:#ff8844; padding:8px; border-radius:8px; border:none; cursor:pointer;">Очистить</button></div>
+                        <div class="settings-item"><span>Сбросить всё</span><button id="factoryResetBtn" style="background:#ff4444; padding:8px; border-radius:8px; border:none; cursor:pointer;">СБРОСИТЬ ВСЁ</button></div>
+                        <div class="settings-item"><span>Версия OS</span><span>BEAM OS v10.0</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+    </div>
+    
+    <div id="saveDialog" class="save-dialog"><h3>💾 Сохранить файл</h3><input type="text" id="saveFileName" placeholder="Имя файла"><select id="saveFileType"><option value="txt">Текстовый</option><option value="html">HTML</option><option value="css">CSS</option><option value="js">JavaScript</option></select><button id="confirmSaveBtn">💾 Сохранить</button><button id="cancelSaveBtn">Отмена</button></div>
+
+    <script>
+        // ========== ЗАГРУЗКА ==========
+        setTimeout(() => {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('desktop').classList.add('active');
+            showNotification('⚡ BEAM OS', 'Добро пожаловать!');
+        }, 2000);
+        
+        // ========== ДАННЫЕ ==========
+        let projects = JSON.parse(localStorage.getItem('beam_projects') || '[]');
+        let downloads = JSON.parse(localStorage.getItem('beam_downloads') || '[]');
+        let desktopIconsList = JSON.parse(localStorage.getItem('beam_desktop_icons') || '[{"id":"explorer","emoji":"📁","name":"Проводник","x":20,"y":50},{"id":"browser","emoji":"🌐","name":"Браузер","x":20,"y":130},{"id":"calculator","emoji":"📱","name":"Калькулятор","x":20,"y":210},{"id":"notepad","emoji":"📝","name":"Блокнот","x":20,"y":290},{"id":"coder","emoji":"💻","name":"HTML Кодер","x":20,"y":370},{"id":"cmd","emoji":"💻","name":"Командная строка","x":20,"y":450},{"id":"taskmanager","emoji":"📊","name":"Диспетчер задач","x":20,"y":530},{"id":"devicemanager","emoji":"🖥️","name":"Диспетчер устройств","x":20,"y":610},{"id":"settings","emoji":"⚙️","name":"Настройки","x":20,"y":690}]');
+        
+        let drives = [
+            { letter: "C:", name: "Система", icon: "💿", files: [{ name: "Windows", type: "folder" }, { name: "Program Files", type: "folder" }, { name: "Users", type: "folder" }] },
+            { letter: "D:", name: "Данные", icon: "💾", files: [{ name: "Documents", type: "folder" }, { name: "Music", type: "folder" }] },
+            { letter: "E:", name: "Пусто", icon: "📀", files: [] },
+            { letter: "Z:", name: "Сеть", icon: "🌐", files: [] }
+        ];
+        
+        function saveAll() {
+            localStorage.setItem('beam_projects', JSON.stringify(projects));
+            localStorage.setItem('beam_downloads', JSON.stringify(downloads));
+            localStorage.setItem('beam_desktop_icons', JSON.stringify(desktopIconsList));
+            localStorage.setItem('beam_notepad', document.getElementById('notepadText')?.value || '');
+            localStorage.setItem('beam_code', document.getElementById('codeEditor')?.value || '');
+        }
+        
+        function showNotification(msg, detail) {
+            let notif = document.createElement('div');
+            notif.className = 'notification';
+            notif.innerHTML = `<strong>${msg}</strong><br>${detail}`;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 2500);
+        }
+        
+        // ========== ПРОВОДНИК ==========
+        function renderDrives() {
+            const container = document.getElementById('driveList');
+            if (!container) return;
+            container.innerHTML = '<h4>💿 Локальные диски</h4>';
+            drives.forEach(drive => {
+                const div = document.createElement('div');
+                div.className = 'drive-item';
+                div.innerHTML = `<div><span style="font-size:20px; margin-right:10px;">${drive.icon}</span> ${drive.letter} (${drive.name})</div><span>🔓</span>`;
+                div.onclick = () => {
+                    let filesHtml = '<h4>📁 Содержимое</h4>';
+                    if (drive.files.length === 0) filesHtml += '<div style="color:#aaa; padding:20px;">Папка пуста</div>';
+                    else drive.files.forEach(f => filesHtml += `<div class="file-item"><div>📁 ${f.name}</div></div>`);
+                    document.getElementById('folderContent').innerHTML = filesHtml;
+                };
+                container.appendChild(div);
+            });
+        }
+        
+        // ========== КОНТЕКСТНОЕ МЕНЮ ==========
+        const contextMenu = document.getElementById('contextMenu');
+        let currentIconIndex = null;
+        
+        document.getElementById('desktop').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            contextMenu.style.left = e.clientX + 'px';
+            contextMenu.style.top = e.clientY + 'px';
+            contextMenu.style.display = 'block';
+            currentIconIndex = null;
+        });
+        document.addEventListener('click', () => contextMenu.style.display = 'none');
+        
+        document.getElementById('ctxRefresh').onclick = () => { renderDesktopIcons(); showNotification('🔄 Рабочий стол обновлён', ''); };
+        document.getElementById('ctxPersonalize').onclick = () => openWindow('settings');
+        document.getElementById('ctxNewShortcut').onclick = () => {
+            contextMenu.style.display = 'none';
+            let name = prompt('Название ярлыка:', 'Новый ярлык');
+            let appId = prompt('ID приложения (explorer, browser, calculator, notepad, coder, cmd, taskmanager, devicemanager, settings):', 'explorer');
+            if (name && appId) {
+                let emoji = '📌';
+                if (appId === 'explorer') emoji = '📁';
+                else if (appId === 'browser') emoji = '🌐';
+                else if (appId === 'calculator') emoji = '📱';
+                else if (appId === 'notepad') emoji = '📝';
+                else if (appId === 'coder') emoji = '💻';
+                else if (appId === 'cmd') emoji = '💻';
+                else if (appId === 'taskmanager') emoji = '📊';
+                else if (appId === 'devicemanager') emoji = '🖥️';
+                else if (appId === 'settings') emoji = '⚙️';
+                desktopIconsList.push({ id: appId, emoji: emoji, name: name, x: 100, y: 100 });
+                saveAll();
+                renderDesktopIcons();
+                showNotification('🔗 Ярлык создан', name);
+            }
+        };
+        
+        function renderDesktopIcons() {
+            let c = document.getElementById('desktopIcons');
+            c.innerHTML = '';
+            desktopIconsList.forEach((icon, i) => {
+                let div = document.createElement('div');
+                div.className = 'desktop-icon';
+                div.setAttribute('data-id', icon.id);
+                div.setAttribute('data-idx', i);
+                div.style.left = icon.x + 'px';
+                div.style.top = icon.y + 'px';
+                div.style.position = 'absolute';
+                div.innerHTML = `<div class="desktop-icon-emoji">${icon.emoji}</div><div class="desktop-icon-text">${icon.name}</div>`;
+                div.addEventListener('click', () => openWindow(icon.id));
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    contextMenu.style.left = e.clientX + 'px';
+                    contextMenu.style.top = e.clientY + 'px';
+                    contextMenu.style.display = 'block';
+                    currentIconIndex = i;
+                    let deleteItem = document.getElementById('ctxDeleteIcon');
+                    if (!deleteItem) {
+                        deleteItem = document.createElement('div');
+                        deleteItem.className = 'context-menu-item';
+                        deleteItem.id = 'ctxDeleteIcon';
+                        contextMenu.appendChild(deleteItem);
+                    }
+                    deleteItem.innerHTML = '🗑️ Удалить';
+                    deleteItem.onclick = () => {
+                        if (currentIconIndex !== null && desktopIconsList[currentIconIndex]) {
+                            desktopIconsList.splice(currentIconIndex, 1);
+                            saveAll();
+                            renderDesktopIcons();
+                            contextMenu.style.display = 'none';
+                            showNotification('🗑️ Ярлык удалён', '');
+                        }
+                    };
+                    let renameItem = document.getElementById('ctxRenameIcon');
+                    if (!renameItem) {
+                        renameItem = document.createElement('div');
+                        renameItem.className = 'context-menu-item';
+                        renameItem.id = 'ctxRenameIcon';
+                        contextMenu.appendChild(renameItem);
+                    }
+                    renameItem.innerHTML = '✏️ Переименовать';
+                    renameItem.onclick = () => {
+                        contextMenu.style.display = 'none';
+                        let newName = prompt('Введите новое имя:', icon.name);
+                        if (newName && desktopIconsList[currentIconIndex]) {
+                            desktopIconsList[currentIconIndex].name = newName;
+                            saveAll();
+                            renderDesktopIcons();
+                            showNotification('✏️ Ярлык переименован', newName);
+                        }
+                    };
+                });
+                div.addEventListener('mousedown', startDrag);
+                c.appendChild(div);
+            });
+        }
+        
+        let dragTarget = null, dragSX, dragSY, dragLX, dragLY;
+        function startDrag(e) { if (e.button !== 0) return; dragTarget = e.currentTarget; dragSX = e.clientX; dragSY = e.clientY; dragLX = parseInt(dragTarget.style.left); dragLY = parseInt(dragTarget.style.top); dragTarget.classList.add('dragging'); document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag); e.preventDefault(); }
+        function onDrag(e) { if (!dragTarget) return; let nx = dragLX + (e.clientX - dragSX); let ny = dragLY + (e.clientY - dragSY); nx = Math.min(window.innerWidth - 100, Math.max(0, nx)); ny = Math.min(window.innerHeight - 100, Math.max(0, ny)); dragTarget.style.left = nx + 'px'; dragTarget.style.top = ny + 'px'; }
+        function stopDrag() { if (!dragTarget) return; let idx = parseInt(dragTarget.getAttribute('data-idx')); if (desktopIconsList[idx]) { desktopIconsList[idx].x = parseInt(dragTarget.style.left); desktopIconsList[idx].y = parseInt(dragTarget.style.top); saveAll(); } dragTarget.classList.remove('dragging'); dragTarget = null; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
+        
+        // ========== ОКНА ==========
+        const windows = {
+            explorer: document.getElementById('windowExplorer'),
+            browser: document.getElementById('windowBrowser'),
+            calculator: document.getElementById('windowCalculator'),
+            notepad: document.getElementById('windowNotepad'),
+            coder: document.getElementById('windowCoder'),
+            cmd: document.getElementById('windowCmd'),
+            taskmanager: document.getElementById('windowTaskManager'),
+            devicemanager: document.getElementById('windowDeviceManager'),
+            settings: document.getElementById('windowSettings')
+        };
+        
+        let winZ = 100;
+        function closeAll() { Object.values(windows).forEach(w => { if (w) { w.classList.remove('active'); w.classList.remove('minimized'); w.style.display = 'none'; } }); updateTaskbar(); }
+        function openWindow(id) { let w = windows[id]; if (!w) return; closeAll(); w.classList.remove('minimized'); w.style.display = 'flex'; w.classList.add('active'); w.style.zIndex = ++winZ; updateTaskbar(); }
+        
+        function updateTaskbar() {
+            let bar = document.getElementById('taskbarWindows');
+            bar.innerHTML = '';
+            for (let [key, win] of Object.entries(windows)) {
+                if (win && win.classList.contains('active') && !win.classList.contains('minimized')) {
+                    let btn = document.createElement('div');
+                    btn.className = 'taskbar-window-btn';
+                    btn.innerHTML = win.querySelector('.window-title')?.innerText || key;
+                    btn.onclick = () => { win.classList.remove('minimized'); win.style.display = 'flex'; win.classList.add('active'); win.style.zIndex = ++winZ; updateTaskbar(); };
+                    bar.appendChild(btn);
+                }
+            }
+        }
+        
+        for (let [key, win] of Object.entries(windows)) {
+            if (!win) continue;
+            let minBtn = win.querySelector('.window-minimize');
+            let maxBtn = win.querySelector('.window-maximize');
+            let closeBtn = win.querySelector('.window-close');
+            if (minBtn) minBtn.onclick = (e) => { e.stopPropagation(); win.classList.add('minimized'); win.classList.remove('active'); win.style.display = 'none'; updateTaskbar(); };
+            if (maxBtn) maxBtn.onclick = (e) => { e.stopPropagation(); win.classList.toggle('maximized'); if (!win.classList.contains('maximized')) { win.style.width = win.dataset.ow || '500px'; win.style.height = win.dataset.oh || '400px'; win.style.left = win.dataset.ol || '100px'; win.style.top = win.dataset.ot || '80px'; } else { win.dataset.ow = win.style.width; win.dataset.oh = win.style.height; win.dataset.ol = win.style.left; win.dataset.ot = win.style.top; win.style.width = ''; win.style.height = ''; win.style.left = ''; win.style.top = ''; } updateTaskbar(); };
+            if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); win.classList.remove('active'); win.classList.remove('minimized'); win.style.display = 'none'; updateTaskbar(); };
+            makeDraggable(win);
+            makeResizable(win);
+        }
+        
+        function makeDraggable(el) {
+            const header = el.querySelector('.window-header');
+            let isDrag = false, offX, offY;
+            header.addEventListener('mousedown', (e) => {
+                if (e.target === header || e.target.classList.contains('window-title')) {
+                    isDrag = true;
+                    offX = e.clientX - el.offsetLeft;
+                    offY = e.clientY - el.offsetTop;
+                    el.style.zIndex = ++winZ;
+                }
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (isDrag && !el.classList.contains('maximized')) {
+                    let left = e.clientX - offX;
+                    let top = e.clientY - offY;
+                    left = Math.min(window.innerWidth - 50, Math.max(0, left));
+                    top = Math.min(window.innerHeight - 80, Math.max(0, top));
+                    el.style.left = left + 'px';
+                    el.style.top = top + 'px';
+                }
+            });
+            document.addEventListener('mouseup', () => { isDrag = false; });
+        }
+        
+        function makeResizable(el) {
+            const handle = el.querySelector('.resize-handle');
+            if (!handle) return;
+            let isRes = false, sX, sY, sW, sH;
+            handle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                isRes = true;
+                sX = e.clientX;
+                sY = e.clientY;
+                sW = parseInt(el.style.width);
+                sH = parseInt(el.style.height);
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+            function onMove(e) { if (!isRes) return; let nw = sW + (e.clientX - sX); let nh = sH + (e.clientY - sY); if (nw > 250) el.style.width = nw + 'px'; if (nh > 200) el.style.height = nh + 'px'; }
+            function onUp() { isRes = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+        }
+        
+        function updateClock() { document.getElementById('clock').innerHTML = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); }
+        updateClock(); setInterval(updateClock, 1000);
+        
+        // ========== МЕНЮ ==========
+        const startMenu = document.getElementById('startMenu');
+        const powerMenu = document.getElementById('powerMenu');
+        document.getElementById('startBtn').onclick = () => { startMenu.classList.toggle('active'); powerMenu.classList.remove('active'); renderStartMenu(); };
+        document.getElementById('trayBtn').onclick = () => { powerMenu.classList.toggle('active'); startMenu.classList.remove('active'); };
+        document.getElementById('cancelPowerBtn').onclick = () => powerMenu.classList.remove('active');
+        document.addEventListener('click', (e) => { if (!startMenu.contains(e.target) && e.target !== document.getElementById('startBtn')) startMenu.classList.remove('active'); if (!powerMenu.contains(e.target) && e.target !== document.getElementById('trayBtn')) powerMenu.classList.remove('active'); });
+        
+        function renderStartMenu() {
+            let apps = [
+                { name: 'Проводник', icon: '📁', act: () => openWindow('explorer') },
+                { name: 'Браузер', icon: '🌐', act: () => openWindow('browser') },
+                { name: 'Калькулятор', icon: '📱', act: () => openWindow('calculator') },
+                { name: 'Блокнот', icon: '📝', act: () => openWindow('notepad') },
+                { name: 'HTML Кодер', icon: '💻', act: () => openWindow('coder') },
+                { name: 'Командная строка', icon: '💻', act: () => openWindow('cmd') },
+                { name: 'Диспетчер задач', icon: '📊', act: () => openWindow('taskmanager') },
+                { name: 'Диспетчер устройств', icon: '🖥️', act: () => openWindow('devicemanager') },
+                { name: 'Настройки', icon: '⚙️', act: () => openWindow('settings') }
+            ];
+            let container = document.getElementById('startMenuApps');
+            container.innerHTML = '';
+            apps.forEach(a => { let div = document.createElement('div'); div.className = 'start-menu-item'; div.innerHTML = `<span>${a.icon}</span> ${a.name}`; div.onclick = () => { a.act(); startMenu.classList.remove('active'); }; container.appendChild(div); });
+            let tiles = document.getElementById('startTiles');
+            tiles.innerHTML = '';
+            let tdata = [{ emoji: '🌐', name: 'Google', act: () => { openWindow('browser'); document.getElementById('urlInput').value = 'https://www.google.com'; document.getElementById('goBtn').click(); } }, { emoji: '📧', name: 'Почта', act: () => { openWindow('browser'); document.getElementById('urlInput').value = 'https://mail.google.com'; document.getElementById('goBtn').click(); } }];
+            tdata.forEach(t => { let div = document.createElement('div'); div.className = 'start-tile'; div.innerHTML = `<div style="font-size:24px;">${t.emoji}</div><div>${t.name}</div>`; div.onclick = () => { t.act(); startMenu.classList.remove('active'); }; tiles.appendChild(div); });
+        }
+        
+        // ========== ПЕРЕЗАГРУЗКА И СБРОС ==========
+        function showReboot(message, callback) {
+            const overlay = document.getElementById('rebootOverlay');
+            document.getElementById('rebootText').innerText = message;
+            overlay.classList.add('active');
+            setTimeout(() => {
+                if (callback) callback();
+                else location.reload();
+            }, 2000);
+        }
+        
+        document.getElementById('restartBtn').onclick = () => showReboot('Перезагрузка системы...');
+        document.getElementById('shutdownBtn').onclick = () => showReboot('Выключение системы...', () => {
+            document.getElementById('desktop').classList.remove('active');
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('rebootOverlay').classList.remove('active');
+        });
+        
+        document.getElementById('factoryResetBtn').onclick = () => {
+            if (confirm('⚠️ ВНИМАНИЕ! Сброс удалит ВСЕ ваши данные: проекты, заметки, настройки. Продолжить?')) {
+                localStorage.clear();
+                projects = [];
+                downloads = [];
+                desktopIconsList = [
+                    { id: "explorer", emoji: "📁", name: "Проводник", x: 20, y: 50 },
+                    { id: "browser", emoji: "🌐", name: "Браузер", x: 20, y: 130 },
+                    { id: "calculator", emoji: "📱", name: "Калькулятор", x: 20, y: 210 },
+                    { id: "notepad", emoji: "📝", name: "Блокнот", x: 20, y: 290 },
+                    { id: "coder", emoji: "💻", name: "HTML Кодер", x: 20, y: 370 },
+                    { id: "cmd", emoji: "💻", name: "Командная строка", x: 20, y: 450 },
+                    { id: "taskmanager", emoji: "📊", name: "Диспетчер задач", x: 20, y: 530 },
+                    { id: "devicemanager", emoji: "🖥️", name: "Диспетчер устройств", x: 20, y: 610 },
+                    { id: "settings", emoji: "⚙️", name: "Настройки", x: 20, y: 690 }
+                ];
+                saveAll();
+                document.getElementById('notepadText').value = '';
+                document.getElementById('codeEditor').value = '<h1>Новый проект</h1>';
+                renderDesktopIcons();
+                renderDrives();
+                showNotification('💾 Сброс выполнен', 'Все данные удалены');
+                showReboot('Сброс настроек. Перезагрузка...');
+            }
+        };
+        
+        document.getElementById('clearCacheBtn').onclick = () => {
+            localStorage.clear();
+            projects = [];
+            downloads = [];
+            saveAll();
+            document.getElementById('notepadText').value = '';
+            document.getElementById('codeEditor').value = '<h1>Новый проект</h1>';
+            renderDesktopIcons();
+            showNotification('💾 Кэш очищен', 'Все данные удалены');
+        };
+        
+        function searchGlobal(q) {
+            let lower = q.toLowerCase();
+            let res = [];
+            for (let [key, win] of Object.entries(windows)) if (win && key.toLowerCase().includes(lower)) res.push({ name: key, icon: '🪟', act: () => openWindow(key) });
+            let apps = ['explorer', 'browser', 'calculator', 'notepad', 'coder', 'cmd', 'taskmanager', 'devicemanager', 'settings'];
+            apps.forEach(a => { if (a.toLowerCase().includes(lower)) res.push({ name: a, icon: '⚡', act: () => openWindow(a) }); });
+            let container = document.getElementById('startMenuApps');
+            if (container && q.length > 0) {
+                container.innerHTML = '';
+                res.slice(0, 10).forEach(r => { let div = document.createElement('div'); div.className = 'start-menu-item'; div.innerHTML = `<span>${r.icon}</span> ${r.name}`; div.onclick = () => { r.act(); startMenu.classList.remove('active'); }; container.appendChild(div); });
+                if (res.length === 0) container.innerHTML = '<div class="start-menu-item">Ничего не найдено</div>';
+                startMenu.classList.add('active');
+            }
+        }
+        document.getElementById('globalSearch').addEventListener('input', (e) => searchGlobal(e.target.value));
+        document.getElementById('startSearch').addEventListener('input', (e) => searchGlobal(e.target.value));
+        
+        // ========== КАЛЬКУЛЯТОР ==========
+        let calcDisp = document.getElementById('calcDisplay'), calcCur = '';
+        document.querySelectorAll('.calc-btn[data-num]').forEach(btn => btn.addEventListener('click', () => { if (calcCur === '0') calcCur = ''; calcCur += btn.dataset.num; calcDisp.innerText = calcCur || '0'; }));
+        document.querySelectorAll('.calc-btn.operator[data-op]').forEach(btn => btn.addEventListener('click', () => { let op = btn.dataset.op; if (op === '=') { try { let expr = calcCur.replace(/÷/g, '/').replace(/×/g, '*'); let res = eval(expr); calcCur = res.toString(); calcDisp.innerText = calcCur; } catch (e) { calcDisp.innerText = 'Ошибка'; calcCur = ''; } } else { calcCur += op; calcDisp.innerText = calcCur; } }));
+        document.getElementById('calcClear').addEventListener('click', () => { calcCur = ''; calcDisp.innerText = '0'; });
+        
+        // ========== БЛОКНОТ ==========
+        let nArea = document.getElementById('notepadText');
+        document.getElementById('saveNotepadBtn').onclick = () => {
+            let blob = new Blob([nArea.value], { type: 'text/plain' });
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'заметки.txt';
+            a.click();
+            downloads.push({ name: 'заметки.txt', content: nArea.value, type: 'txt' });
+            saveAll();
+            showNotification('💾 Сохранено', 'заметки.txt');
+        };
+        document.getElementById('loadNotepadBtn').onclick = () => { let inp = document.createElement('input'); inp.type = 'file'; inp.onchange = (e) => { let file = e.target.files[0]; let r = new FileReader(); r.onload = (ev) => { nArea.value = ev.target.result; showNotification('📂 Загружено', file.name); }; r.readAsText(file); }; inp.click(); };
+        
+        // ========== КОДЕР ==========
+        let cEditor = document.getElementById('codeEditor');
+        let preview = document.getElementById('codePreview');
+        let saveDialog = document.getElementById('saveDialog');
+        let pendingSave = null;
+        
+        document.getElementById('saveCodeBtn').onclick = () => {
+            pendingSave = cEditor.value;
+            document.getElementById('saveFileName').value = 'проект.html';
+            document.getElementById('saveFileType').value = 'html';
+            saveDialog.classList.add('active');
+        };
+        document.getElementById('confirmSaveBtn').onclick = () => {
+            let name = document.getElementById('saveFileName').value || 'проект';
+            let type = document.getElementById('saveFileType').value;
+            let fullName = name.includes('.') ? name : name + '.' + type;
+            let blob = new Blob([pendingSave || cEditor.value], { type: type === 'html' ? 'text/html' : 'text/plain' });
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fullName;
+            a.click();
+            projects.push({ name: fullName, content: pendingSave || cEditor.value, type: type });
+            saveAll();
+            saveDialog.classList.remove('active');
+            showNotification('💾 Проект сохранён', fullName);
+        };
+        document.getElementById('cancelSaveBtn').onclick = () => saveDialog.classList.remove('active');
+        document.getElementById('runCodeBtn').onclick = () => { preview.src = URL.createObjectURL(new Blob([cEditor.value], { type: 'text/html' })); showNotification('▶ Запуск', 'В окне предпросмотра'); };
+        document.getElementById('exportCodeBtn').onclick = () => { let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([cEditor.value], { type: 'text/html' })); a.download = 'project.html'; a.click(); };
+        
+        // ========== КОМАНДНАЯ СТРОКА ==========
+        function runCommand(cmd) {
+            let output = document.getElementById('consoleOutput');
+            let parts = cmd.trim().split(' ');
+            let command = parts[0].toLowerCase();
+            let arg = parts.slice(1).join(' ');
+            output.innerHTML += `<br>C:\\Users\\BEAM&gt;${cmd}`;
+            if (command === 'help') output.innerHTML += `<br>Доступны: help, dir, cls, run [app], shutdown, restart, notepad, calc, browser`;
+            else if (command === 'dir') output.innerHTML += `<br> Список файлов: ${projects.map(p => p.name).join(', ') || 'пусто'}`;
+            else if (command === 'cls') output.innerHTML = 'Microsoft Windows [Version 10.0.19045.0]\n(c) Корпорация Майкрософт.\n\nC:\\Users\\BEAM&gt;';
+            else if (command === 'run' && arg) openWindow(arg);
+            else if (command === 'notepad') openWindow('notepad');
+            else if (command === 'calc') openWindow('calculator');
+            else if (command === 'browser') openWindow('browser');
+            else if (command === 'shutdown') document.getElementById('shutdownBtn').click();
+            else if (command === 'restart') document.getElementById('restartBtn').click();
+            else output.innerHTML += `<br>Неизвестная команда: ${cmd}. Введите help.`;
+            output.scrollTop = output.scrollHeight;
+        }
+        document.getElementById('consoleRunBtn').onclick = () => { let inp = document.getElementById('consoleInput'); runCommand(inp.value); inp.value = ''; };
+        document.getElementById('consoleInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') { let inp = document.getElementById('consoleInput'); runCommand(inp.value); inp.value = ''; } });
+        
+        // ========== БРАУЗЕР ==========
+        let bFrame = document.getElementById('browserFrame'), uInput = document.getElementById('urlInput');
+        function loadUrl() { let url = uInput.value; if (!url.startsWith('http')) url = 'https://' + url; bFrame.src = url; }
+        document.getElementById('goBtn').onclick = loadUrl;
+        uInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') loadUrl(); });
+        
+        // ========== ДИСПЕТЧЕР ЗАДАЧ ==========
+        function updateTaskManager() {
+            document.getElementById('cpuUsage').innerText = Math.floor(Math.random() * 100);
+            document.getElementById('ramUsage').innerText = Math.floor(Math.random() * 8000);
+            let cnt = Object.values(windows).filter(w => w && w.style.display === 'flex').length + 5;
+            document.getElementById('processCount').innerText = cnt;
+            let plist = document.getElementById('processList');
+            if (plist) {
+                plist.innerHTML = '';
+                let procs = ['System (NT Kernel)', 'explorer.exe', 'taskmgr.exe'];
+                Object.keys(windows).forEach(k => { if (windows[k] && windows[k].style.display === 'flex') procs.push(k + '.exe'); });
+                procs.forEach(p => { let div = document.createElement('div'); div.className = 'file-item'; div.innerHTML = `<div>⚙️ ${p}</div><div>${Math.floor(Math.random() * 200)} MB</div>`; plist.appendChild(div); });
+            }
+        }
+        setInterval(updateTaskManager, 2000);
+        
+        // ========== НАСТРОЙКИ ==========
+        const wallpapers = ['https://images.pexels.com/photos/531880/pexels-photo-531880.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&dpr=2', 'https://images.pexels.com/photos/998641/pexels-photo-998641.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&dpr=2', 'https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&dpr=2', 'https://images.pexels.com/photos/360912/pexels-photo-360912.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&dpr=2'];
+        let wallSel = document.getElementById('wallpaperSelect');
+        wallSel.addEventListener('change', () => { let idx = parseInt(wallSel.value); document.querySelector('.desktop').style.backgroundImage = `url(${wallpapers[idx]})`; saveAll(); });
+        document.getElementById('themeSelect').addEventListener('change', (e) => { let theme = e.target.value; document.querySelector('.desktop').style.background = theme === 'light' ? '#e0e0e0' : `url(${wallpapers[wallSel.value]})`; });
+        
+        renderDrives(); renderDesktopIcons(); updateTaskManager();
+        setInterval(saveAll, 30000);
+    </script>
+</body>
+</html>
