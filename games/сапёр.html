@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сапёр — BEAM</title>
+    <style>
+        body {
+            background: linear-gradient(145deg, #0a0f1e 0%, #0a0a1a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 48px;
+            padding: 25px;
+            border: 1px solid #f7931a;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        h2 { margin: 0 0 10px 0; color: #f7931a; letter-spacing: 2px; }
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        select, button {
+            background: #1e1e2e;
+            border: 1px solid #f7931a;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.1s;
+        }
+        button:active { transform: scale(0.96); }
+        .board {
+            display: inline-grid;
+            background: #2a2a3a;
+            padding: 8px;
+            border-radius: 16px;
+            gap: 2px;
+            background-color: #3a3a4a;
+        }
+        .cell {
+            width: 34px;
+            height: 34px;
+            background: #2d2d3f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: 0.05s linear;
+            box-shadow: inset 0 0 0 1px #5a5a7a;
+            user-select: none;
+        }
+        .cell.revealed {
+            background: #ececec;
+            color: #1a1a2e;
+            box-shadow: inset 0 0 0 1px #aaa;
+        }
+        .cell.flagged::before { content: "🚩"; font-size: 20px; }
+        .status {
+            margin-top: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #00000066;
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 60px;
+        }
+        footer { font-size: 11px; margin-top: 15px; color: #aaa; }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h2>💣 САПЁР</h2>
+    <div class="controls">
+        <select id="sizeSelect">
+            <option value="6">6x6 (малое)</option>
+            <option value="9" selected>9x9 (среднее)</option>
+            <option value="12">12x12 (большое)</option>
+        </select>
+        <select id="difficultySelect">
+            <option value="0.1">Лёгкий (10% мин)</option>
+            <option value="0.16" selected>Средний (16% мин)</option>
+            <option value="0.22">Сложный (22% мин)</option>
+        </select>
+        <button id="newGameBtn">🔄 Новая игра</button>
+    </div>
+    <div id="board" class="board"></div>
+    <div id="status" class="status">⚡ Игра активна</div>
+    <footer>ЛКМ — открыть | ПКМ — флаг 🚩</footer>
+</div>
+
+<script>
+    let board = [], rows = 9, cols = 9, mineCount = 0, totalMines = 0, gameActive = true;
+    let cellsRevealed = 0, flagged = new Set();
+    const boardDiv = document.getElementById('board');
+    const sizeSelect = document.getElementById('sizeSelect');
+    const difficultySelect = document.getElementById('difficultySelect');
+    const newGameBtn = document.getElementById('newGameBtn');
+    const statusDiv = document.getElementById('status');
+
+    function initGame() {
+        rows = cols = parseInt(sizeSelect.value);
+        let difficulty = parseFloat(difficultySelect.value);
+        totalMines = Math.floor(rows * cols * difficulty);
+        if (totalMines < 1) totalMines = 1;
+        if (totalMines >= rows * cols) totalMines = rows * cols - 1;
+        
+        board = Array(rows).fill().map(() => Array(cols).fill().map(() => ({
+            isMine: false,
+            revealed: false,
+            neighborMines: 0,
+            flagged: false
+        })));
+        
+        // размещаем мины
+        let minesPlaced = 0;
+        while (minesPlaced < totalMines) {
+            let r = Math.floor(Math.random() * rows);
+            let c = Math.floor(Math.random() * cols);
+            if (!board[r][c].isMine) {
+                board[r][c].isMine = true;
+                minesPlaced++;
+            }
+        }
+        
+        // считаем соседей
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (board[r][c].isMine) continue;
+                let cnt = 0;
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        let nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].isMine) cnt++;
+                    }
+                }
+                board[r][c].neighborMines = cnt;
+            }
+        }
+        
+        gameActive = true;
+        cellsRevealed = 0;
+        flagged.clear();
+        statusDiv.innerHTML = "⚡ Игра активна";
+        statusDiv.style.color = "#f7931a";
+        renderBoard();
+    }
+    
+    function revealCell(r, c) {
+        if (!gameActive) return;
+        if (board[r][c].revealed) return;
+        if (board[r][c].flagged) return;
+        
+        if (board[r][c].isMine) {
+            // проигрыш
+            gameActive = false;
+            statusDiv.innerHTML = "💀 ВЗОРВАЛСЯ! Нажми новую игру 💀";
+            statusDiv.style.color = "#ff7777";
+            // показать все мины
+            for (let i = 0; i < rows; i++)
+                for (let j = 0; j < cols; j++)
+                    if (board[i][j].isMine) board[i][j].revealed = true;
+            renderBoard();
+            return;
+        }
+        
+        // открываем клетку
+        board[r][c].revealed = true;
+        cellsRevealed++;
+        
+        if (board[r][c].neighborMines === 0) {
+            // открываем соседей рекурсивно
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    let nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !board[nr][nc].revealed && !board[nr][nc].isMine && !board[nr][nc].flagged) {
+                        revealCell(nr, nc);
+                    }
+                }
+            }
+        }
+        
+        // проверка победы
+        let safeCells = rows * cols - totalMines;
+        if (cellsRevealed === safeCells) {
+            gameActive = false;
+            statusDiv.innerHTML = "🏆 ПОБЕДА! Молодец 🏆";
+            statusDiv.style.color = "#aaffaa";
+        }
+        renderBoard();
+    }
+    
+    function toggleFlag(r, c, event) {
+        event.preventDefault();
+        if (!gameActive) return;
+        if (board[r][c].revealed) return;
+        
+        if (board[r][c].flagged) {
+            board[r][c].flagged = false;
+            flagged.delete(`${r},${c}`);
+        } else {
+            board[r][c].flagged = true;
+            flagged.add(`${r},${c}`);
+        }
+        renderBoard();
+    }
+    
+    function renderBoard() {
+        boardDiv.style.gridTemplateColumns = `repeat(${cols}, 34px)`;
+        boardDiv.innerHTML = "";
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const cell = board[i][j];
+                const button = document.createElement("div");
+                button.className = "cell";
+                if (cell.revealed) button.classList.add("revealed");
+                if (cell.flagged && !cell.revealed) button.classList.add("flagged");
+                
+                let content = "";
+                if (cell.revealed) {
+                    if (cell.isMine) content = "💣";
+                    else if (cell.neighborMines > 0) content = cell.neighborMines;
+                    else content = "";
+                } else if (cell.flagged) {
+                    content = ""; // псевдоэлемент показывает флаг
+                } else content = "";
+                
+                button.innerText = content;
+                if (!cell.revealed && !cell.flagged) button.innerText = "";
+                
+                button.addEventListener("click", (function(r,c){ return function(){ revealCell(r,c); }; })(i,j));
+                button.addEventListener("contextmenu", (function(r,c){ return function(e){ toggleFlag(r,c,e); }; })(i,j));
+                boardDiv.appendChild(button);
+            }
+        }
+    }
+    
+    newGameBtn.addEventListener("click", () => { initGame(); });
+    sizeSelect.addEventListener("change", () => initGame());
+    difficultySelect.addEventListener("change", () => initGame());
+    initGame();
+</script>
+</body>
+</html>
