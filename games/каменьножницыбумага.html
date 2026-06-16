@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>КНБ</title><style>
+body{background:#0a0a1a;color:white;font-family:monospace;text-align:center;padding:20px;}
+.choice-btn{font-size:40px;background:#1a1a2e;border:2px solid #f7931a;border-radius:60px;margin:10px;padding:15px;cursor:pointer;width:100px;}
+.choice-btn:hover{background:#f7931a;}
+.scores{font-size:24px;margin:20px;}
+</style></head>
+<body>
+<h2>✊ Камень ✋ Ножницы ✌️ Бумага</h2>
+<div>
+<button class="choice-btn" onclick="play('rock')">✊</button>
+<button class="choice-btn" onclick="play('paper')">✋</button>
+<button class="choice-btn" onclick="play('scissors')">✌️</button>
+</div>
+<div class="scores">🏆 Счёт: <span id="win">0</span> — <span id="lose">0</span></div>
+<p id="result"></p>
+<button onclick="resetScore()">🔄 Сбросить счёт</button>
+<script>
+let wins=0,losses=0;
+function getBot(){ let r=Math.random(); if(r<0.33) return 'rock'; if(r<0.66) return 'paper'; return 'scissors'; }
+function getEmoji(choice){ if(choice==='rock') return '✊'; if(choice==='paper') return '✋'; return '✌️'; }
+function play(player){
+ let bot=getBot();
+ if(player===bot){ document.getElementById('result').innerHTML=`${getEmoji(player)} vs ${getEmoji(bot)} — 🤝 Ничья`; return; }
+ let win=false;
+ if((player==='rock' && bot==='scissors')||(player==='scissors' && bot==='paper')||(player==='paper' && bot==='rock')) win=true;
+ if(win){ wins++; document.getElementById('result').innerHTML=`${getEmoji(player)} vs ${getEmoji(bot)} — 🎉 Ты выиграл!`; }
+ else{ losses++; document.getElementById('result').innerHTML=`${getEmoji(player)} vs ${getEmoji(bot)} — 💀 Бот выиграл`; }
+ document.getElementById('win').innerText=wins; document.getElementById('lose').innerText=losses;
+}
+function resetScore(){ wins=0; losses=0; document.getElementById('win').innerText=wins; document.getElementById('lose').innerText=losses; document.getElementById('result').innerHTML='Счёт сброшен!'; }
+</script></body></html>
